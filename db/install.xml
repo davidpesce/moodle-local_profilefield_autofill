@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/profilefield_autofill/db" VERSION="20251021" COMMENT="XMLDB file for Moodle local/profilefield_autofill"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="local_profilefield_mapping" COMMENT="Profile field auto-fill mapping rules">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="sourcefield" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Source field shortname (can be standard user field or profile_field_xxx)"/>
+        <FIELD NAME="targetfield" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Target profile field shortname"/>
+        <FIELD NAME="sourcevalue" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Source field value to match"/>
+        <FIELD NAME="targetvalue" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Value to set in target field"/>
+        <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether this mapping is enabled"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="sourcefield_idx" UNIQUE="false" FIELDS="sourcefield"/>
+        <INDEX NAME="targetfield_idx" UNIQUE="false" FIELDS="targetfield"/>
+        <INDEX NAME="enabled_idx" UNIQUE="false" FIELDS="enabled"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
