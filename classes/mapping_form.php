@@ -76,11 +76,29 @@ class local_profilefield_autofill_mapping_form extends moodleform {
         $mform->addHelpButton('targetfield', 'targetfield', 'local_profilefield_autofill');
         $mform->addRule('targetfield', get_string('required'), 'required', null, 'client');
 
-        // Target value.
+        // Target value - will be replaced dynamically based on field type
         $mform->addElement('text', 'targetvalue', get_string('targetvalue', 'local_profilefield_autofill'), ['size' => 50]);
         $mform->setType('targetvalue', PARAM_TEXT);
         $mform->addHelpButton('targetvalue', 'targetvalue', 'local_profilefield_autofill');
         $mform->addRule('targetvalue', get_string('required'), 'required', null, 'client');
+        
+        // Add JavaScript for dynamic field updates using AMD
+        $this->add_field_type_javascript();
+        
+        // Get current values for editing
+        $currenttargetvalue = '';
+        $currenttargetfield = '';
+        
+        // Try to get from optional params (when editing)
+        global $DB;
+        $id = optional_param('id', 0, PARAM_INT);
+        if ($id > 0) {
+            $mapping = $DB->get_record('local_profilefield_mapping', ['id' => $id]);
+            if ($mapping) {
+                $currenttargetvalue = $mapping->targetvalue;
+                $currenttargetfield = $mapping->targetfield;
+            }
+        }
 
         // Enabled checkbox.
         $mform->addElement('advcheckbox', 'enabled', get_string('enabled', 'local_profilefield_autofill'));
@@ -89,6 +107,74 @@ class local_profilefield_autofill_mapping_form extends moodleform {
 
         // Action buttons.
         $this->add_action_buttons(true, get_string('savechanges'));
+    }
+
+    /**
+     * Add JavaScript for dynamic field type handling using AMD
+     */
+    protected function add_field_type_javascript() {
+        global $PAGE, $DB;
+        
+        // Get field type information for JavaScript
+        $fieldtypes = $this->get_field_type_data();
+        
+        // Get current values for editing
+        $currenttargetvalue = '';
+        $currenttargetfield = '';
+        
+        // Try to get from optional params (when editing)
+        $id = optional_param('id', 0, PARAM_INT);
+        if ($id > 0) {
+            $mapping = $DB->get_record('local_profilefield_mapping', ['id' => $id]);
+            if ($mapping) {
+                $currenttargetvalue = $mapping->targetvalue;
+                $currenttargetfield = $mapping->targetfield;
+            }
+        }
+        
+        // Call AMD module with parameters
+        $PAGE->requires->js_call_amd('local_profilefield_autofill/form_handler', 'init', [
+            $fieldtypes,
+            $currenttargetfield,
+            $currenttargetvalue
+        ]);
+    }
+
+
+    /**
+     * Get field type data for JavaScript
+     */
+    protected function get_field_type_data() {
+        global $DB;
+        
+        $fieldtypes = [];
+        
+        // Get custom profile field types
+        $customfields = $DB->get_records('user_info_field');
+        foreach ($customfields as $field) {
+            $fieldkey = 'profile_field_' . $field->shortname;
+            $fieldtypes[$fieldkey] = [
+                'type' => $field->datatype,
+                'description' => $field->description,
+                'options' => $field->param1 // For menu fields, param1 contains options
+            ];
+        }
+        
+        // Add standard fields with their types
+        $standardfields = [
+            'city' => ['type' => 'text', 'description' => 'User city'],
+            'country' => ['type' => 'text', 'description' => 'User country code'],
+            'institution' => ['type' => 'text', 'description' => 'User institution'],
+            'department' => ['type' => 'text', 'description' => 'User department'],
+            'phone1' => ['type' => 'text', 'description' => 'Primary phone number'],
+            'phone2' => ['type' => 'text', 'description' => 'Secondary phone number'],
+            'address' => ['type' => 'text', 'description' => 'User address'],
+            'description' => ['type' => 'textarea', 'description' => 'User description']
+        ];
+        
+        $fieldtypes = array_merge($fieldtypes, $standardfields);
+        
+        return $fieldtypes;
     }
 
     /**

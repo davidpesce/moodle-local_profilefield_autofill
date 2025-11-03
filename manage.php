@@ -314,73 +314,7 @@ if (empty($mappings)) {
     }
 }
 
-// Add search functionality JavaScript
-echo html_writer::start_tag('script');
-echo "
-document.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('mapping-search');
-    if (!searchInput) return;
-    
-    var searchTimeout;
-    
-    function performSearch() {
-        var searchTerm = searchInput.value.trim().toLowerCase();
-        
-        // Get current view elements
-        var table = document.getElementById('profilefield-mappings-table');
-        var container = document.getElementById('grouped-mappings-container');
-        
-        if (searchTerm === '') {
-            // Show all elements
-            if (table) {
-                var rows = table.querySelectorAll('tbody tr');
-                for (var i = 0; i < rows.length; i++) {
-                    rows[i].style.display = '';
-                }
-            }
-            if (container) {
-                var cards = container.querySelectorAll('.card');
-                for (var i = 0; i < cards.length; i++) {
-                    cards[i].style.display = '';
-                }
-            }
-            return;
-        }
-        
-        // Search table view
-        if (table) {
-            var tbody = table.querySelector('tbody');
-            if (tbody) {
-                var rows = tbody.querySelectorAll('tr');
-                for (var i = 0; i < rows.length; i++) {
-                    var row = rows[i];
-                    var text = row.textContent.toLowerCase();
-                    row.style.display = text.indexOf(searchTerm) !== -1 ? '' : 'none';
-                }
-            }
-        }
-        
-        // Search grouped view
-        if (container) {
-            var cards = container.querySelectorAll('.card');
-            for (var i = 0; i < cards.length; i++) {
-                var card = cards[i];
-                var text = card.textContent.toLowerCase();
-                card.style.display = text.indexOf(searchTerm) !== -1 ? '' : 'none';
-            }
-        }
-    }
-    
-    function debouncedSearch() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(performSearch, 300);
-    }
-    
-    // Bind events
-    searchInput.addEventListener('input', debouncedSearch);
-    searchInput.addEventListener('keyup', debouncedSearch);
-});
-";
-echo html_writer::end_tag('script');
+// Add search functionality using AMD
+$PAGE->requires->js_call_amd('local_profilefield_autofill/search_handler', 'init');
 
 echo $OUTPUT->footer();
