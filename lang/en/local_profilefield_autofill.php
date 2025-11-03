@@ -117,3 +117,6 @@ $string['sourcevalue_help'] = 'Enter the value that will trigger this mapping ru
 $string['targetfield_help'] = 'Select the field that will be automatically filled when the source condition is met. You can choose from standard user fields (like city, institution, etc.) or custom profile fields. Note: Critical fields like username and email cannot be modified for security reasons.';
 $string['targetvalue_help'] = 'Enter the value that will be set in the target field when the source condition matches. This will replace any existing value in the target field.';
 $string['enabled_help'] = 'When enabled, this mapping rule will be applied whenever users are created or updated. Disabled rules are ignored but preserved in the system.';
+
+// Scheduled task.
+$string['applymappingstask'] = 'Apply profile field mappings';

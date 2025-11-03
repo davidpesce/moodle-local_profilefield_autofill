@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_profilefield_autofill plugin
+ * Task definition for local_profilefield_autofill.
  *
  * @package    local_profilefield_autofill
  * @copyright  2025 David Pesce
@@ -24,8 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025110301;        // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2024041600;        // Requires Moodle 4.4 or later.
-$plugin->component = 'local_profilefield_autofill'; // Full name of the plugin (used for diagnostics).
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.1.1';
+$tasks = [
+    [
+        'classname' => '\local_profilefield_autofill\task\apply_mappings',
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '2',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0
+    ]
+];
