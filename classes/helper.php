@@ -608,4 +608,348 @@ class helper {
         // Delete the records using delete_records_select for text field comparisons
         return $DB->delete_records_select('local_profilefield_mapping', $where_clause, $params);
     }
+
+    /**
+     * Import mappings from CSV data
+     *
+     * @param array $csvdata Array of CSV rows
+     * @param array $options Import options (updateexisting, enableimported)
+     * @return array Import results with counts and errors
+     */
+    public static function import_mappings_from_csv($csvdata, $options = []) {
+        global $DB;
+        
+        $results = [
+            'total' => 0,
+            'imported' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'errors' => []
+        ];
+        
+        $updateexisting = !empty($options['updateexisting']);
+        $enableimported = !empty($options['enableimported']);
+        
+        foreach ($csvdata as $rownum => $row) {
+            $results['total']++;
+            
+            // Skip empty rows
+            if (empty(array_filter($row))) {
+                $results['skipped']++;
+                continue;
+            }
+            
+            // Validate required fields
+            $validation = self::validate_csv_row($row, $rownum);
+            if (!empty($validation)) {
+                $results['errors'] = array_merge($results['errors'], $validation);
+                $results['skipped']++;
+                continue;
+            }
+            
+            $mapping = (object)[
+                'sourcefield' => trim($row[0]),
+                'sourcevalue' => trim($row[1]),
+                'targetfield' => trim($row[2]),
+                'targetvalue' => trim($row[3]),
+                'enabled' => $enableimported ? 1 : 0,
+                'timecreated' => time(),
+                'timemodified' => time()
+            ];
+            
+            // Check if mapping already exists (using sql_compare_text for text fields)
+            $sql = "SELECT * FROM {local_profilefield_mapping} 
+                    WHERE sourcefield = :sourcefield 
+                    AND " . $DB->sql_compare_text('sourcevalue') . " = " . $DB->sql_compare_text(':sourcevalue') . "
+                    AND targetfield = :targetfield";
+            
+            $params = [
+                'sourcefield' => $mapping->sourcefield,
+                'sourcevalue' => $mapping->sourcevalue,
+                'targetfield' => $mapping->targetfield
+            ];
+            
+            $existing = $DB->get_record_sql($sql, $params);
+            
+            if ($existing) {
+                if ($updateexisting) {
+                    $mapping->id = $existing->id;
+                    $mapping->timecreated = $existing->timecreated;
+                    
+                    if ($DB->update_record('local_profilefield_mapping', $mapping)) {
+                        $results['updated']++;
+                    } else {
+                        $results['errors'][] = get_string('errorupdatingrow', 'local_profilefield_autofill', $rownum + 1);
+                        $results['skipped']++;
+                    }
+                } else {
+                    $results['skipped']++;
+                }
+            } else {
+                if ($DB->insert_record('local_profilefield_mapping', $mapping)) {
+                    $results['imported']++;
+                } else {
+                    $results['errors'][] = get_string('errorimportingrow', 'local_profilefield_autofill', $rownum + 1);
+                    $results['skipped']++;
+                }
+            }
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Validate a CSV row
+     *
+     * @param array $row CSV row data
+     * @param int $rownum Row number for error reporting
+     * @return array Array of validation errors
+     */
+    private static function validate_csv_row($row, $rownum) {
+        $errors = [];
+        $rownum++; // Convert to 1-based for user display
+        
+        // Check if we have enough columns
+        if (count($row) < 4) {
+            $errors[] = get_string('csvrowtooshort', 'local_profilefield_autofill', $rownum);
+            return $errors;
+        }
+        
+        // Validate required fields
+        if (empty(trim($row[0]))) {
+            $errors[] = get_string('csvsourcefieldmissing', 'local_profilefield_autofill', $rownum);
+        }
+        if (empty(trim($row[1]))) {
+            $errors[] = get_string('csvsourcevaluemissing', 'local_profilefield_autofill', $rownum);
+        }
+        if (empty(trim($row[2]))) {
+            $errors[] = get_string('csvtargetfieldmissing', 'local_profilefield_autofill', $rownum);
+        }
+        if (empty(trim($row[3]))) {
+            $errors[] = get_string('csvtargetvaluemissing', 'local_profilefield_autofill', $rownum);
+        }
+        
+        // Validate field names exist (skip if database not accessible)
+        try {
+            $sourceoptions = self::get_source_field_options();
+            $targetoptions = self::get_target_field_options();
+            
+            $sourcefield = trim($row[0]);
+            $targetfield = trim($row[2]);
+            
+            $sourcevalid = false;
+            foreach ($sourceoptions as $group) {
+                if (array_key_exists($sourcefield, $group)) {
+                    $sourcevalid = true;
+                    break;
+                }
+            }
+            
+            $targetvalid = false;
+            foreach ($targetoptions as $group) {
+                if (array_key_exists($targetfield, $group)) {
+                    $targetvalid = true;
+                    break;
+                }
+            }
+            
+            if (!$sourcevalid) {
+                $errors[] = get_string('csvinvalidsourcefield', 'local_profilefield_autofill', [
+                    'row' => $rownum, 
+                    'field' => $sourcefield
+                ]);
+            }
+            
+            if (!$targetvalid) {
+                $errors[] = get_string('csvinvalidtargetfield', 'local_profilefield_autofill', [
+                    'row' => $rownum, 
+                    'field' => $targetfield
+                ]);
+            }
+            
+            // Additional validation for dropdown/menu fields
+            if ($targetvalid && strpos($targetfield, 'profile_field_') === 0) {
+                $fieldname = str_replace('profile_field_', '', $targetfield);
+                $targetvalue = trim($row[3]);
+                
+                $validationresult = self::validate_dropdown_value($fieldname, $targetvalue);
+                if (!$validationresult['valid']) {
+                    $errors[] = get_string('csvinvalidtargetvalue', 'local_profilefield_autofill', [
+                        'row' => $rownum,
+                        'field' => $targetfield,
+                        'value' => $targetvalue,
+                        'suggestion' => $validationresult['suggestion']
+                    ]);
+                }
+            }
+        } catch (Exception $e) {
+            // Skip field validation if database is not accessible
+            // This allows import to proceed with basic validation only
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Parse CSV file content
+     *
+     * @param string $content CSV file content
+     * @param string $delimiter CSV delimiter
+     * @param string $encoding File encoding
+     * @param bool $hasheader Whether first row is header
+     * @return array Parsed CSV data
+     */
+    public static function parse_csv_content($content, $delimiter = ',', $encoding = 'UTF-8', $hasheader = true) {
+        // Convert encoding if needed
+        if (strtoupper($encoding) !== 'UTF-8') {
+            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+        }
+        
+        // Handle different delimiters
+        if ($delimiter === '\t') {
+            $delimiter = "\t";
+        }
+        
+        // Parse CSV
+        $lines = str_getcsv($content, "\n");
+        $data = [];
+        
+        foreach ($lines as $line) {
+            if (trim($line)) {
+                $data[] = str_getcsv($line, $delimiter);
+            }
+        }
+        
+        // Remove header if present
+        if ($hasheader && !empty($data)) {
+            array_shift($data);
+        }
+        
+        return $data;
+    }
+    
+    /**
+     * Generate CSV template content
+     *
+     * @return string CSV template with headers and example data
+     */
+    public static function generate_csv_template() {
+        $headers = [
+            'sourcefield',
+            'sourcevalue', 
+            'targetfield',
+            'targetvalue'
+        ];
+        
+        $examples = [
+            ['email', '*@university.edu', 'profile_field_institution', 'University Name'],
+            ['city', 'Boston', 'profile_field_region', 'Northeast'],
+            ['profile_field_department', 'IT', 'profile_field_autofill', 'Technology']
+        ];
+        
+        $csv = implode(',', $headers) . "\n";
+        
+        foreach ($examples as $example) {
+            $csv .= implode(',', array_map(function($field) {
+                return '"' . str_replace('"', '""', $field) . '"';
+            }, $example)) . "\n";
+        }
+        
+        return $csv;
+    }
+    
+    /**
+     * Validate if a value is valid for a dropdown/menu profile field
+     *
+     * @param string $fieldname Profile field shortname (without profile_field_ prefix)
+     * @param string $value Value to validate
+     * @return array Array with 'valid' boolean and 'suggestion' string
+     */
+    private static function validate_dropdown_value($fieldname, $value) {
+        global $DB;
+        
+        try {
+            // Get the profile field definition
+            $field = $DB->get_record('user_info_field', ['shortname' => $fieldname]);
+            if (!$field) {
+                return ['valid' => true, 'suggestion' => '']; // Field doesn't exist, let normal validation handle it
+            }
+            
+            // Only validate dropdown/menu fields
+            if (!in_array($field->datatype, ['menu', 'checkbox'])) {
+                return ['valid' => true, 'suggestion' => '']; // Not a dropdown, no validation needed
+            }
+            
+            // For menu fields, check if value exists in param1 (menu options)
+            if ($field->datatype === 'menu' && !empty($field->param1)) {
+                $options = explode("\n", $field->param1);
+                $options = array_map('trim', $options);
+                $options = array_filter($options); // Remove empty options
+                
+                // Case-insensitive exact match
+                foreach ($options as $option) {
+                    if (strcasecmp(trim($option), trim($value)) === 0) {
+                        return ['valid' => true, 'suggestion' => ''];
+                    }
+                }
+                
+                // Find closest match for suggestion
+                $suggestion = self::find_closest_match($value, $options);
+                return [
+                    'valid' => false, 
+                    'suggestion' => $suggestion ? "Did you mean '{$suggestion}'? Available options: " . implode(', ', $options) : "Available options: " . implode(', ', $options)
+                ];
+            }
+            
+            // For checkbox fields, validate against yes/no values
+            if ($field->datatype === 'checkbox') {
+                $lowervalue = strtolower(trim($value));
+                if (in_array($lowervalue, ['1', '0', 'yes', 'no', 'true', 'false', 'on', 'off'])) {
+                    return ['valid' => true, 'suggestion' => ''];
+                }
+                return [
+                    'valid' => false,
+                    'suggestion' => "For checkbox fields, use: 1, 0, yes, no, true, false, on, or off"
+                ];
+            }
+            
+            return ['valid' => true, 'suggestion' => ''];
+            
+        } catch (Exception $e) {
+            // If validation fails, assume valid to avoid blocking import
+            return ['valid' => true, 'suggestion' => ''];
+        }
+    }
+    
+    /**
+     * Find the closest matching option using simple string similarity
+     *
+     * @param string $needle Value to match
+     * @param array $haystack Array of available options
+     * @return string|null Closest match or null if no good match
+     */
+    private static function find_closest_match($needle, $haystack) {
+        $needle = strtolower(trim($needle));
+        $bestscore = 0;
+        $bestmatch = null;
+        
+        foreach ($haystack as $option) {
+            $option = trim($option);
+            $optionlower = strtolower($option);
+            
+            // Check for partial matches
+            if (strpos($optionlower, $needle) !== false || strpos($needle, $optionlower) !== false) {
+                return $option;
+            }
+            
+            // Use similar_text for fuzzy matching
+            similar_text($needle, $optionlower, $score);
+            if ($score > $bestscore && $score > 60) { // At least 60% similarity
+                $bestscore = $score;
+                $bestmatch = $option;
+            }
+        }
+        
+        return $bestmatch;
+    }
 }

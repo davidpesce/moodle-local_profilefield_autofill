@@ -121,3 +121,46 @@ $string['enabled_help'] = 'When enabled, this mapping rule will be applied whene
 
 // Scheduled task.
 $string['applymappingstask'] = 'Apply profile field mappings';
+
+// CSV Import strings
+$string['importmappings'] = 'Import Mappings';
+$string['csvoptions'] = 'CSV Options';
+$string['comma'] = 'Comma (,)';
+$string['semicolon'] = 'Semicolon (;)';
+$string['tab'] = 'Tab';
+$string['pipe'] = 'Pipe (|)';
+$string['importoptions'] = 'Import Options';
+$string['csvimport'] = 'Import CSV';
+$string['csvimporthelp'] = 'Upload a CSV file to import multiple profile field mappings at once. The CSV should contain columns for: sourcefield, sourcevalue, targetfield, targetvalue.';
+$string['csvfile'] = 'CSV File';
+$string['csvfile_help'] = 'Select a CSV file containing profile field mappings. Maximum file size: 2MB.';
+$string['delimiter'] = 'Delimiter';
+$string['delimiter_help'] = 'The character used to separate values in the CSV file.';
+$string['encoding'] = 'File Encoding';
+$string['encoding_help'] = 'The character encoding of the CSV file.';
+$string['hasheader'] = 'File has header row';
+$string['hasheader_help'] = 'Check this if the first row of the CSV file contains column headers.';
+$string['updateexisting'] = 'Update existing mappings';
+$string['updateexisting_help'] = 'If a mapping with the same source field, source value, and target field already exists, update it with the new target value.';
+$string['enableimported'] = 'Enable imported mappings';
+$string['enableimported_help'] = 'Automatically enable all mappings imported from the CSV file.';
+$string['downloadtemplate'] = 'Download CSV Template';
+$string['csvimportcomplete'] = 'CSV import completed. Total: {$a->total}, Imported: {$a->imported}, Updated: {$a->updated}, Skipped: {$a->skipped}';
+$string['csvimporterrors'] = 'Import Errors:';
+$string['csvfileempty'] = 'The uploaded CSV file is empty.';
+$string['csvnodata'] = 'No valid data found in the CSV file.';
+$string['csvrowtooshort'] = 'Row {$a} has too few columns (expected 4).';
+$string['csvsourcefieldmissing'] = 'Row {$a}: Source field is required.';
+$string['csvsourcevaluemissing'] = 'Row {$a}: Source value is required.';
+$string['csvtargetfieldmissing'] = 'Row {$a}: Target field is required.';
+$string['csvtargetvaluemissing'] = 'Row {$a}: Target value is required.';
+$string['csvinvalidsourcefield'] = 'Row {$a->row}: Invalid source field "{$a->field}".';
+$string['csvinvalidtargetfield'] = 'Row {$a->row}: Invalid target field "{$a->field}".';
+$string['csvinvalidtargetvalue'] = 'Row {$a->row}: Invalid value "{$a->value}" for field "{$a->field}". {$a->suggestion}';
+$string['errorimportingrow'] = 'Error importing row {$a}.';
+$string['errorupdatingrow'] = 'Error updating row {$a}.';
+$string['import'] = 'Import';
+$string['csvformat'] = 'CSV Format';
+$string['csvformatinfo'] = 'The CSV file should have 4 columns in this order: sourcefield, sourcevalue, targetfield, targetvalue. Each row represents one mapping rule.';
+$string['invalidfiletype'] = 'Only CSV files are allowed.';
+$string['filesizetoobig'] = 'File size cannot exceed 2MB.';

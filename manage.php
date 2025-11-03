@@ -25,6 +25,7 @@
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once(__DIR__ . '/classes/mapping_form.php');
+require_once(__DIR__ . '/classes/import_form.php');
 
 // Check admin access.
 admin_externalpage_setup('local_profilefield_autofill_manage');
@@ -114,6 +115,107 @@ if ($action === 'toggle' && $id > 0) {
     }
 }
 
+// Handle CSV import
+if ($action === 'import') {
+    $formurl = new moodle_url('/local/profilefield_autofill/manage.php', ['action' => 'import']);
+    $form = new local_profilefield_autofill_import_form($formurl);
+    
+    if ($form->is_cancelled()) {
+        redirect($PAGE->url);
+    }
+    
+    if ($data = $form->get_data()) {
+        try {
+            // Get uploaded file content
+            $content = $form->get_file_content('csvfile');
+            
+            if (empty($content)) {
+                throw new Exception(get_string('csvfileempty', 'local_profilefield_autofill'));
+            }
+            
+            // Parse CSV
+            $csvdata = \local_profilefield_autofill\helper::parse_csv_content(
+                $content,
+                $data->delimiter,
+                $data->encoding,
+                !empty($data->hasheader)
+            );
+            
+            if (empty($csvdata)) {
+                throw new Exception(get_string('csvnodata', 'local_profilefield_autofill'));
+            }
+            
+            // Import mappings
+            $options = [
+                'updateexisting' => !empty($data->updateexisting),
+                'enableimported' => !empty($data->enableimported)
+            ];
+            
+            $results = \local_profilefield_autofill\helper::import_mappings_from_csv($csvdata, $options);
+            
+            // Prepare success message with details
+            $message = get_string('csvimportcomplete', 'local_profilefield_autofill', $results);
+            
+            // Add errors to message if any
+            if (!empty($results['errors'])) {
+                $errormsg = html_writer::tag('h5', get_string('csvimporterrors', 'local_profilefield_autofill'));
+                $errormsg .= html_writer::alist($results['errors']);
+                $message .= html_writer::div($errormsg, 'alert alert-warning mt-2');
+            }
+            
+            redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
+            
+        } catch (Exception $e) {
+            redirect($PAGE->url, 'Error importing CSV: ' . $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+        }
+    }
+    
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('csvimport', 'local_profilefield_autofill'));
+    
+    echo html_writer::div(get_string('csvimporthelp', 'local_profilefield_autofill'), 'alert alert-info');
+    
+    // Add download template link
+    $templateurl = new moodle_url('/local/profilefield_autofill/manage.php', ['action' => 'template']);
+    echo html_writer::div(
+        html_writer::link($templateurl, get_string('downloadtemplate', 'local_profilefield_autofill'), 
+            ['class' => 'btn btn-secondary btn-sm']),
+        'mb-3'
+    );
+    
+    $form->display();
+    
+    echo $OUTPUT->footer();
+    exit;
+}
+
+// Handle CSV template download
+if ($action === 'template') {
+    $filename = 'profilefield_mappings_template.csv';
+    
+    // Simple template content without database dependency
+    $headers = ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
+    $examples = [
+        ['email', '*@university.edu', 'institution', 'University Name'],
+        ['city', 'Boston', 'profile_field_region', 'Northeast'],
+        ['profile_field_department', 'IT', 'profile_field_category', 'Technology']
+    ];
+    
+    $content = implode(',', $headers) . "\n";
+    foreach ($examples as $example) {
+        $content .= implode(',', array_map(function($field) {
+            return '"' . str_replace('"', '""', $field) . '"';
+        }, $example)) . "\n";
+    }
+    
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($content));
+    
+    echo $content;
+    exit;
+}
+
 // Handle form for adding/editing mappings.
 if ($action === 'add' || ($action === 'edit' && $id > 0)) {
     $mapping = null;
@@ -181,14 +283,16 @@ echo $OUTPUT->heading(get_string('pluginname', 'local_profilefield_autofill'));
 
 echo html_writer::div(get_string('plugindesc', 'local_profilefield_autofill'), 'alert alert-info');
 
-// Add action button.
+// Add action buttons.
 $addurl = new moodle_url($PAGE->url, ['action' => 'add']);
+$importurl = new moodle_url($PAGE->url, ['action' => 'import']);
 
-echo html_writer::div(
-    html_writer::link($addurl, get_string('addmapping', 'local_profilefield_autofill'), 
-        ['class' => 'btn btn-primary']),
-    'mb-3'
-);
+echo html_writer::start_div('d-flex gap-2 mb-3');
+echo html_writer::link($addurl, get_string('addmapping', 'local_profilefield_autofill'), 
+    ['class' => 'btn btn-primary']);
+echo html_writer::link($importurl, get_string('csvimport', 'local_profilefield_autofill'), 
+    ['class' => 'btn btn-secondary']);
+echo html_writer::end_div();
 
 // Get view preference
 $grouped = optional_param('grouped', 0, PARAM_INT);

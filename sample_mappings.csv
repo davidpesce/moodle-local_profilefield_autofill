@@ -1,0 +1,5 @@
+sourcefield,sourcevalue,targetfield,targetvalue
+email,*@university.edu,institution,University Name
+city,Boston,city,Northeast
+department,IT,profile_field_autofill,Technology
+email,*@company.com,institution,Corporate Training
