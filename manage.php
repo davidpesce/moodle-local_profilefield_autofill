@@ -36,6 +36,10 @@ $PAGE->set_url(new moodle_url('/local/profilefield_autofill/manage.php'));
 $PAGE->set_title(get_string('pluginname', 'local_profilefield_autofill'));
 $PAGE->set_heading(get_string('pluginname', 'local_profilefield_autofill'));
 
+// Remove breadcrumb navigation for cleaner interface
+$PAGE->navbar->ignore_active();
+$PAGE->set_pagelayout('admin');
+
 // Add custom CSS for grouped view
 $PAGE->requires->css('/local/profilefield_autofill/styles.css');
 
@@ -229,20 +233,6 @@ if (empty($mappings)) {
     echo html_writer::end_div();
     
     echo html_writer::end_div();
-    
-    // Info text for grouped view
-    if ($grouped) {
-        echo html_writer::div(get_string('groupviewhelp', 'local_profilefield_autofill'), 
-            'alert alert-info small mb-3');
-    }
-
-    // Add view toggle
-    $toggleurl = new moodle_url($PAGE->url, ['grouped' => $grouped ? 0 : 1]);
-    $toggletext = $grouped ? 'Show List View' : 'Show Grouped View';
-    echo html_writer::div(
-        html_writer::link($toggleurl, $toggletext, ['class' => 'btn btn-sm btn-outline-secondary']),
-        'mb-3 text-right'
-    );
     
     if ($grouped) {
         // Display grouped view
