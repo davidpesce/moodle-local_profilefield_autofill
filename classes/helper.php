@@ -355,4 +355,257 @@ class helper {
         $newstatus = $mapping->enabled ? 0 : 1;
         return $DB->set_field('local_profilefield_mapping', 'enabled', $newstatus, ['id' => $id]);
     }
+
+    /**
+     * Group mappings by target field and value
+     *
+     * @param array $mappings Array of mapping objects
+     * @return array Grouped mappings
+     */
+    public static function group_mappings_by_target($mappings) {
+        $groups = [];
+        
+        foreach ($mappings as $mapping) {
+            $key = $mapping->targetfield . '::' . $mapping->targetvalue;
+            if (!isset($groups[$key])) {
+                $groups[$key] = [
+                    'targetfield' => $mapping->targetfield,
+                    'targetvalue' => $mapping->targetvalue,
+                    'mappings' => []
+                ];
+            }
+            $groups[$key]['mappings'][] = $mapping;
+        }
+        
+        // Sort groups alphabetically by target field name, then by target value
+        uasort($groups, function($a, $b) {
+            // First sort by formatted field name
+            $fieldA = self::format_field_name($a['targetfield']);
+            $fieldB = self::format_field_name($b['targetfield']);
+            
+            $fieldComparison = strcasecmp($fieldA, $fieldB);
+            if ($fieldComparison !== 0) {
+                return $fieldComparison;
+            }
+            
+            // If field names are the same, sort by target value
+            return strcasecmp($a['targetvalue'], $b['targetvalue']);
+        });
+        
+        return $groups;
+    }
+
+    /**
+     * Display mappings in grouped format
+     *
+     * @param array $groups Grouped mappings
+     * @param moodle_url $pageurl Current page URL
+     */
+    public static function display_grouped_mappings($groups, $pageurl) {
+        global $OUTPUT;
+        
+        $groupindex = 0;
+        foreach ($groups as $group) {
+            $targetname = self::format_field_name($group['targetfield']);
+            $count = count($group['mappings']);
+            $groupid = 'mapping-group-' . $groupindex;
+            
+            // Group header with collapse functionality and bulk actions
+            echo \html_writer::start_div('card mb-3');
+            echo \html_writer::start_div('card-header bg-light d-flex justify-content-between align-items-center');
+            
+            // Left side - clickable header with collapse icon
+            $enabledcount = count(array_filter($group['mappings'], function($m) { return $m->enabled; }));
+            $headertext = $targetname . ' → "' . format_string($group['targetvalue']) . '" (' . $enabledcount . '/' . $count . ' enabled)';
+            
+            echo \html_writer::start_div('flex-grow-1');
+            echo \html_writer::start_tag('h6', ['class' => 'mb-0']);
+            echo \html_writer::start_tag('button', [
+                'class' => 'btn btn-link text-left p-0 text-decoration-none collapsed',
+                'type' => 'button',
+                'data-toggle' => 'collapse',
+                'data-target' => '#' . $groupid,
+                'aria-expanded' => 'false',
+                'aria-controls' => $groupid,
+                'style' => 'color: inherit; font-weight: inherit;'
+            ]);
+            echo \html_writer::tag('i', '', ['class' => 'fa fa-chevron-down mr-2', 'aria-hidden' => 'true']);
+            echo $headertext;
+            echo \html_writer::end_tag('button');
+            echo \html_writer::end_tag('h6');
+            echo \html_writer::end_div();
+            
+            // Right side - bulk action buttons
+            echo \html_writer::start_div('btn-group btn-group-sm');
+            
+            // Enable all button (only if some are disabled)
+            if ($enabledcount < $count) {
+                $enableurl = new \moodle_url($pageurl, [
+                    'action' => 'bulkenable',
+                    'targetfield' => $group['targetfield'],
+                    'targetvalue' => $group['targetvalue'],
+                    'grouped' => 1,
+                    'sesskey' => sesskey()
+                ]);
+                echo \html_writer::link($enableurl, 
+                    get_string('enableall', 'local_profilefield_autofill'), 
+                    ['class' => 'btn btn-success btn-sm']);
+            }
+            
+            // Disable all button (only if some are enabled)
+            if ($enabledcount > 0) {
+                $disableurl = new \moodle_url($pageurl, [
+                    'action' => 'bulkdisable',
+                    'targetfield' => $group['targetfield'],
+                    'targetvalue' => $group['targetvalue'],
+                    'grouped' => 1,
+                    'sesskey' => sesskey()
+                ]);
+                echo \html_writer::link($disableurl, 
+                    get_string('disableall', 'local_profilefield_autofill'), 
+                    ['class' => 'btn btn-warning btn-sm']);
+            }
+            
+            // Delete all button
+            $deleteurl = new \moodle_url($pageurl, [
+                'action' => 'bulkdelete',
+                'targetfield' => $group['targetfield'],
+                'targetvalue' => $group['targetvalue'],
+                'grouped' => 1,
+                'sesskey' => sesskey()
+            ]);
+            $deleteconfirm = get_string('confirmbulkdelete', 'local_profilefield_autofill');
+            echo \html_writer::link($deleteurl, 
+                get_string('deleteall', 'local_profilefield_autofill'), 
+                ['class' => 'btn btn-danger btn-sm', 
+                 'onclick' => "return confirm('$deleteconfirm');"]);
+            
+            echo \html_writer::end_div(); // btn-group
+            echo \html_writer::end_div(); // card-header
+            
+            // Collapsible body
+            echo \html_writer::start_div('collapse', ['id' => $groupid]);
+            echo \html_writer::start_div('card-body p-2');
+            
+            // Display mappings in this group
+            foreach ($group['mappings'] as $mapping) {
+                $sourcename = self::format_field_name($mapping->sourcefield);
+                
+                echo \html_writer::start_div('d-flex justify-content-between align-items-center border-bottom py-2');
+                
+                // Left side - source info
+                echo \html_writer::start_div();
+                echo \html_writer::tag('strong', $sourcename, ['class' => 'mr-2']);
+                echo \html_writer::tag('code', format_string($mapping->sourcevalue));
+                echo \html_writer::end_div();
+                
+                // Right side - status and actions
+                echo \html_writer::start_div('d-flex align-items-center');
+                
+                // Status badge
+                $statusclass = $mapping->enabled ? 'badge-success' : 'badge-secondary';
+                $statustext = $mapping->enabled ? 
+                    get_string('enabledstatus', 'local_profilefield_autofill') : 
+                    get_string('disabledstatus', 'local_profilefield_autofill');
+                echo \html_writer::span($statustext, 'badge ' . $statusclass . ' mr-2');
+                
+                // Action icons - native Moodle style (plain icons)
+                // Preserve current view state in action URLs
+                $currenturl = new \moodle_url($pageurl, ['grouped' => 1]);
+                
+                $editurl = new \moodle_url($pageurl, ['action' => 'edit', 'id' => $mapping->id, 'returnurl' => $currenturl->out(false)]);
+                echo \html_writer::link($editurl, 
+                    \html_writer::tag('i', '', ['class' => 'fa fa-cog', 'aria-hidden' => 'true']), 
+                    ['class' => 'action-icon mr-2', 'title' => get_string('edit', 'local_profilefield_autofill')]);
+                
+                $toggletext = $mapping->enabled ? get_string('disable', 'local_profilefield_autofill') : get_string('enable', 'local_profilefield_autofill');
+                $toggleicon = $mapping->enabled ? 'fa-eye-slash' : 'fa-eye';
+                $toggleurl = new \moodle_url($pageurl, ['action' => 'toggle', 'id' => $mapping->id, 'grouped' => 1, 'sesskey' => sesskey()]);
+                echo \html_writer::link($toggleurl, 
+                    \html_writer::tag('i', '', ['class' => 'fa ' . $toggleicon, 'aria-hidden' => 'true']), 
+                    ['class' => 'action-icon mr-2', 'title' => $toggletext]);
+                
+                $deleteurl = new \moodle_url($pageurl, ['action' => 'delete', 'id' => $mapping->id, 'grouped' => 1, 'sesskey' => sesskey()]);
+                echo \html_writer::link($deleteurl, 
+                    \html_writer::tag('i', '', ['class' => 'fa fa-trash', 'aria-hidden' => 'true']), 
+                    ['class' => 'action-icon', 
+                     'title' => get_string('delete', 'local_profilefield_autofill'),
+                     'onclick' => 'return confirm("' . get_string('confirmdeletemapping', 'local_profilefield_autofill') . '");']);
+                
+                echo \html_writer::end_div();
+                echo \html_writer::end_div();
+            }
+            
+            echo \html_writer::end_div(); // card-body
+            echo \html_writer::end_div(); // collapse
+            echo \html_writer::end_div(); // card
+            
+            $groupindex++;
+        }
+    }
+
+    /**
+     * Bulk update status for mappings with same target field and value
+     *
+     * @param string $targetfield Target field name
+     * @param string $targetvalue Target value
+     * @param int $enabled New enabled status (0 or 1)
+     * @return bool True if successful
+     */
+    public static function bulk_update_status($targetfield, $targetvalue, $enabled) {
+        global $DB;
+        
+        $params = [
+            'targetfield' => $targetfield,
+            'targetvalue' => $targetvalue
+        ];
+        
+        // Build SQL with proper text comparison
+        $sql_targetfield = $DB->sql_compare_text('targetfield') . ' = ' . $DB->sql_compare_text(':targetfield');
+        $sql_targetvalue = $DB->sql_compare_text('targetvalue') . ' = ' . $DB->sql_compare_text(':targetvalue');
+        $where_clause = $sql_targetfield . ' AND ' . $sql_targetvalue;
+        
+        // First check if any records exist
+        $count = $DB->count_records_select('local_profilefield_mapping', $where_clause, $params);
+        
+        if ($count == 0) {
+            return false; // No records to update
+        }
+        
+        // Update the records
+        $result = $DB->set_field_select('local_profilefield_mapping', 'enabled', $enabled, $where_clause, $params);
+            
+        return $result !== false;
+    }
+
+    /**
+     * Bulk delete mappings with same target field and value
+     *
+     * @param string $targetfield Target field name
+     * @param string $targetvalue Target value
+     * @return bool True if successful
+     */
+    public static function bulk_delete($targetfield, $targetvalue) {
+        global $DB;
+        
+        $params = [
+            'targetfield' => $targetfield,
+            'targetvalue' => $targetvalue
+        ];
+        
+        // Build SQL with proper text comparison
+        $sql_targetfield = $DB->sql_compare_text('targetfield') . ' = ' . $DB->sql_compare_text(':targetfield');
+        $sql_targetvalue = $DB->sql_compare_text('targetvalue') . ' = ' . $DB->sql_compare_text(':targetvalue');
+        $where_clause = $sql_targetfield . ' AND ' . $sql_targetvalue;
+        
+        // First check if any records exist
+        $count = $DB->count_records_select('local_profilefield_mapping', $where_clause, $params);
+        
+        if ($count == 0) {
+            return false; // No records to delete
+        }
+        
+        // Delete the records using delete_records_select for text field comparisons
+        return $DB->delete_records_select('local_profilefield_mapping', $where_clause, $params);
+    }
 }

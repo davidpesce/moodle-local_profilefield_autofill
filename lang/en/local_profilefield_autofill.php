@@ -91,6 +91,22 @@ $string['delete'] = 'Delete';
 $string['enable'] = 'Enable';
 $string['disable'] = 'Disable';
 
+// Bulk management (integrated into grouped view).
+$string['bulkmanage'] = 'Bulk Actions';
+$string['bulkmanage_desc'] = 'In group view, you can manage multiple mappings with the same target field and value together.';
+$string['enableall'] = 'Enable All';
+$string['disableall'] = 'Disable All';
+$string['deleteall'] = 'Delete All';
+$string['confirmbulkdelete'] = 'Are you sure you want to delete ALL mappings in this group? This action cannot be undone.';
+$string['bulkenabled'] = 'All mappings in group enabled successfully.';
+$string['bulkdisabled'] = 'All mappings in group disabled successfully.';
+$string['bulkdeleted'] = 'All mappings in group deleted successfully.';
+
+// View options.
+$string['listview'] = 'List View';
+$string['groupview'] = 'Group View';
+$string['groupviewhelp'] = 'Grouped view shows mappings organized by target field and value, with bulk actions available for each group.';
+
 // Help text.
 $string['help_sourcevalue'] = 'Examples:<br>• Exact match: "student@university.edu"<br>• Wildcard: "*@university.edu" (matches any email from university.edu)<br>• Wildcard: "student*" (matches anything starting with "student")';
 $string['help_mapping'] = 'This plugin monitors user profile changes and automatically fills profile fields based on configured rules. You can target both standard user fields (like city, institution) and custom profile fields. For example, you could automatically set a "City" field to "Boston" when the email domain is "@university.edu".';
