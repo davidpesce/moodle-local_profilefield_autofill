@@ -121,6 +121,8 @@ class local_profilefield_autofill_mapping_form extends moodleform {
         // Get current values for editing
         $currenttargetvalue = '';
         $currenttargetfield = '';
+        $currentsourcevalue = '';
+        $currentsourcefield = '';
         
         // Try to get from optional params (when editing)
         $id = optional_param('id', 0, PARAM_INT);
@@ -129,6 +131,8 @@ class local_profilefield_autofill_mapping_form extends moodleform {
             if ($mapping) {
                 $currenttargetvalue = $mapping->targetvalue;
                 $currenttargetfield = $mapping->targetfield;
+                $currentsourcevalue = $mapping->sourcevalue;
+                $currentsourcefield = $mapping->sourcefield;
             }
         }
         
@@ -136,7 +140,9 @@ class local_profilefield_autofill_mapping_form extends moodleform {
         $PAGE->requires->js_call_amd('local_profilefield_autofill/form_handler', 'init', [
             $fieldtypes,
             $currenttargetfield,
-            $currenttargetvalue
+            $currenttargetvalue,
+            $currentsourcefield,
+            $currentsourcevalue
         ]);
     }
 
