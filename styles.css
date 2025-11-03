@@ -140,11 +140,47 @@ code {
     padding: 0.125rem 0.25rem;
 }
 
+/* Search input styling */
+.input-group-sm .form-control {
+    border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.input-group-sm .input-group-text {
+    border-radius: 0 0.25rem 0.25rem 0;
+    background-color: #f8f9fa;
+    border-left: 0;
+}
+
+#mapping-search:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Search results highlighting */
+.search-no-results {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
 /* Bulk action buttons in card headers */
 .card-header .btn-group-sm .btn {
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
     line-height: 1.5;
+}
+
+/* Responsive search and controls layout */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .input-group {
+        width: 100% !important;
+    }
 }
 
 /* Responsive group header layout */

@@ -195,7 +195,7 @@ $mappings = \local_profilefield_autofill\helper::get_all_mappings();
 if (empty($mappings)) {
     echo html_writer::div(get_string('nomappings', 'local_profilefield_autofill'), 'alert alert-warning');
 } else {
-    // View toggle controls
+    // View toggle controls and search
     echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
     
     // View toggle buttons
@@ -213,13 +213,28 @@ if (empty($mappings)) {
     
     echo html_writer::end_div();
     
-    // Info text for grouped view
-    if ($grouped) {
-        echo html_writer::tag('small', get_string('groupviewhelp', 'local_profilefield_autofill'), 
-            ['class' => 'text-muted']);
-    }
+    // Search input
+    echo html_writer::start_div('input-group input-group-sm', ['style' => 'width: 250px;']);
+    echo html_writer::empty_tag('input', [
+        'type' => 'text',
+        'class' => 'form-control',
+        'id' => 'mapping-search',
+        'placeholder' => get_string('searchmappings', 'local_profilefield_autofill'),
+        'aria-label' => get_string('searchmappings', 'local_profilefield_autofill')
+    ]);
+    echo html_writer::start_div('input-group-append');
+    echo html_writer::tag('span', html_writer::tag('i', '', ['class' => 'fa fa-search']), 
+        ['class' => 'input-group-text']);
+    echo html_writer::end_div();
+    echo html_writer::end_div();
     
     echo html_writer::end_div();
+    
+    // Info text for grouped view
+    if ($grouped) {
+        echo html_writer::div(get_string('groupviewhelp', 'local_profilefield_autofill'), 
+            'alert alert-info small mb-3');
+    }
 
     // Add view toggle
     $toggleurl = new moodle_url($PAGE->url, ['grouped' => $grouped ? 0 : 1]);
@@ -232,7 +247,9 @@ if (empty($mappings)) {
     if ($grouped) {
         // Display grouped view
         $groups = \local_profilefield_autofill\helper::group_mappings_by_target($mappings);
+        echo html_writer::start_div('', ['id' => 'grouped-mappings-container']);
         \local_profilefield_autofill\helper::display_grouped_mappings($groups, $PAGE->url);
+        echo html_writer::end_div();
     } else {
         // Display original table view
         // Create table.
@@ -245,6 +262,7 @@ if (empty($mappings)) {
         get_string('statuscolumn', 'local_profilefield_autofill'),
         get_string('actionscolumn', 'local_profilefield_autofill'),
     ];
+    $table->id = 'profilefield-mappings-table';
     $table->attributes['class'] = 'table table-striped';
 
     foreach ($mappings as $mapping) {
@@ -305,5 +323,74 @@ if (empty($mappings)) {
     echo html_writer::table($table);
     }
 }
+
+// Add search functionality JavaScript
+echo html_writer::start_tag('script');
+echo "
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('mapping-search');
+    if (!searchInput) return;
+    
+    var searchTimeout;
+    
+    function performSearch() {
+        var searchTerm = searchInput.value.trim().toLowerCase();
+        
+        // Get current view elements
+        var table = document.getElementById('profilefield-mappings-table');
+        var container = document.getElementById('grouped-mappings-container');
+        
+        if (searchTerm === '') {
+            // Show all elements
+            if (table) {
+                var rows = table.querySelectorAll('tbody tr');
+                for (var i = 0; i < rows.length; i++) {
+                    rows[i].style.display = '';
+                }
+            }
+            if (container) {
+                var cards = container.querySelectorAll('.card');
+                for (var i = 0; i < cards.length; i++) {
+                    cards[i].style.display = '';
+                }
+            }
+            return;
+        }
+        
+        // Search table view
+        if (table) {
+            var tbody = table.querySelector('tbody');
+            if (tbody) {
+                var rows = tbody.querySelectorAll('tr');
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var text = row.textContent.toLowerCase();
+                    row.style.display = text.indexOf(searchTerm) !== -1 ? '' : 'none';
+                }
+            }
+        }
+        
+        // Search grouped view
+        if (container) {
+            var cards = container.querySelectorAll('.card');
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i];
+                var text = card.textContent.toLowerCase();
+                card.style.display = text.indexOf(searchTerm) !== -1 ? '' : 'none';
+            }
+        }
+    }
+    
+    function debouncedSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, 300);
+    }
+    
+    // Bind events
+    searchInput.addEventListener('input', debouncedSearch);
+    searchInput.addEventListener('keyup', debouncedSearch);
+});
+";
+echo html_writer::end_tag('script');
 
 echo $OUTPUT->footer();

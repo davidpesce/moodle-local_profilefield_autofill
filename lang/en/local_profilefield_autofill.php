@@ -106,6 +106,7 @@ $string['bulkdeleted'] = 'All mappings in group deleted successfully.';
 $string['listview'] = 'List View';
 $string['groupview'] = 'Group View';
 $string['groupviewhelp'] = 'Grouped view shows mappings organized by target field and value, with bulk actions available for each group.';
+$string['searchmappings'] = 'Search mappings...';
 
 // Help text.
 $string['help_sourcevalue'] = 'Examples:<br>• Exact match: "student@university.edu"<br>• Wildcard: "*@university.edu" (matches any email from university.edu)<br>• Wildcard: "student*" (matches anything starting with "student")';
