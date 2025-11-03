@@ -4,7 +4,7 @@
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
-    <TABLE NAME="local_profilefield_mapping" COMMENT="Profile field auto-fill mapping rules">
+    <TABLE NAME="local_profilefield_autofill_mapping" COMMENT="Profile field auto-fill mapping rules">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="sourcefield" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Source field shortname (can be standard user field or profile_field_xxx)"/>

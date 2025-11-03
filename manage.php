@@ -156,11 +156,11 @@ if ($action === 'import') {
             // Prepare success message with details
             $message = get_string('csvimportcomplete', 'local_profilefield_autofill', $results);
             
-            // Add errors to message if any
-            if (!empty($results['errors'])) {
-                $errormsg = html_writer::tag('h5', get_string('csvimporterrors', 'local_profilefield_autofill'));
-                $errormsg .= html_writer::alist($results['errors']);
-                $message .= html_writer::div($errormsg, 'alert alert-warning mt-2');
+            // Add skipped items to message if any
+            if (!empty($results['skipped_items'])) {
+                $skippedmsg = html_writer::tag('h5', get_string('csvskippeditems', 'local_profilefield_autofill'));
+                $skippedmsg .= html_writer::alist($results['skipped_items']);
+                $message .= html_writer::div($skippedmsg, 'alert alert-info mt-2');
             }
             
             redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
@@ -197,8 +197,11 @@ if ($action === 'template') {
     $headers = ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
     $examples = [
         ['email', '*@university.edu', 'institution', 'University Name'],
-        ['city', 'Boston', 'profile_field_region', 'Northeast'],
-        ['profile_field_department', 'IT', 'profile_field_category', 'Technology']
+        ['email', '*@company.com', 'institution', 'Corporate Training'],
+        ['city', 'Boston', 'department', 'IT Department'],
+        ['city', 'New York', 'department', 'Marketing Department'],
+        ['lastname', 'Smith', 'country', 'US'],
+        ['profile_field_customfieldshortname', 'Smith', 'country', 'US']
     ];
     
     $content = implode(',', $headers) . "\n";
@@ -206,6 +209,36 @@ if ($action === 'template') {
         $content .= implode(',', array_map(function($field) {
             return '"' . str_replace('"', '""', $field) . '"';
         }, $example)) . "\n";
+    }
+    
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($content));
+    
+    echo $content;
+    exit;
+}
+
+// Handle CSV export
+if ($action === 'export') {
+    $mappings = \local_profilefield_autofill\helper::get_all_mappings();
+    
+    $filename = 'profilefield_mappings_export_' . date('Y-m-d') . '.csv';
+    $headers = ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
+    
+    $content = implode(',', $headers) . "\n";
+    
+    foreach ($mappings as $mapping) {
+        $row = [
+            $mapping->sourcefield,
+            $mapping->sourcevalue,
+            $mapping->targetfield,
+            $mapping->targetvalue
+        ];
+        
+        $content .= implode(',', array_map(function($field) {
+            return '"' . str_replace('"', '""', $field) . '"';
+        }, $row)) . "\n";
     }
     
     header('Content-Type: text/csv');
@@ -286,12 +319,15 @@ echo html_writer::div(get_string('plugindesc', 'local_profilefield_autofill'), '
 // Add action buttons.
 $addurl = new moodle_url($PAGE->url, ['action' => 'add']);
 $importurl = new moodle_url($PAGE->url, ['action' => 'import']);
+$exporturl = new moodle_url($PAGE->url, ['action' => 'export']);
 
-echo html_writer::start_div('d-flex gap-2 mb-3');
+echo html_writer::start_div('mb-3');
 echo html_writer::link($addurl, get_string('addmapping', 'local_profilefield_autofill'), 
-    ['class' => 'btn btn-primary']);
-echo html_writer::link($importurl, get_string('csvimport', 'local_profilefield_autofill'), 
-    ['class' => 'btn btn-secondary']);
+    ['class' => 'btn btn-primary me-2']);
+echo html_writer::link($importurl, get_string('importmappings', 'local_profilefield_autofill'), 
+    ['class' => 'btn btn-secondary me-2']);
+echo html_writer::link($exporturl, get_string('exportmappings', 'local_profilefield_autofill'), 
+    ['class' => 'btn btn-outline-secondary']);
 echo html_writer::end_div();
 
 // Get view preference

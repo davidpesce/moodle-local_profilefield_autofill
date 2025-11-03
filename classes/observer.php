@@ -58,7 +58,7 @@ class observer {
         require_once($CFG->dirroot . '/user/profile/lib.php');
 
         // Get all enabled mappings.
-        $mappings = $DB->get_records('local_profilefield_mapping', ['enabled' => 1]);
+        $mappings = $DB->get_records('local_profilefield_autofill_mapping', ['enabled' => 1]);
         
         if (empty($mappings)) {
             return;

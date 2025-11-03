@@ -289,7 +289,7 @@ class helper {
      */
     public static function get_mapping($id) {
         global $DB;
-        return $DB->get_record('local_profilefield_mapping', ['id' => $id]);
+        return $DB->get_record('local_profilefield_autofill_mapping', ['id' => $id]);
     }
 
     /**
@@ -307,11 +307,11 @@ class helper {
             // Create new mapping.
             $data->timecreated = $now;
             $data->timemodified = $now;
-            return $DB->insert_record('local_profilefield_mapping', $data);
+            return $DB->insert_record('local_profilefield_autofill_mapping', $data);
         } else {
             // Update existing mapping.
             $data->timemodified = $now;
-            $DB->update_record('local_profilefield_mapping', $data);
+            $DB->update_record('local_profilefield_autofill_mapping', $data);
             return $data->id;
         }
     }
@@ -324,7 +324,7 @@ class helper {
      */
     public static function delete_mapping($id) {
         global $DB;
-        return $DB->delete_records('local_profilefield_mapping', ['id' => $id]);
+        return $DB->delete_records('local_profilefield_autofill_mapping', ['id' => $id]);
     }
 
     /**
@@ -335,7 +335,7 @@ class helper {
     public static function get_all_mappings() {
         global $DB;
         
-        return $DB->get_records('local_profilefield_mapping', null, 'timecreated ASC');
+        return $DB->get_records('local_profilefield_autofill_mapping', null, 'timecreated ASC');
     }
 
     /**
@@ -347,13 +347,13 @@ class helper {
     public static function toggle_mapping_status($id) {
         global $DB;
         
-        $mapping = $DB->get_record('local_profilefield_mapping', ['id' => $id]);
+        $mapping = $DB->get_record('local_profilefield_autofill_mapping', ['id' => $id]);
         if (!$mapping) {
             return false;
         }
 
         $newstatus = $mapping->enabled ? 0 : 1;
-        return $DB->set_field('local_profilefield_mapping', 'enabled', $newstatus, ['id' => $id]);
+        return $DB->set_field('local_profilefield_autofill_mapping', 'enabled', $newstatus, ['id' => $id]);
     }
 
     /**
@@ -573,7 +573,7 @@ class helper {
         }
         
         // Update the records
-        $result = $DB->set_field_select('local_profilefield_mapping', 'enabled', $enabled, $where_clause, $params);
+        $result = $DB->set_field_select('local_profilefield_autofill_mapping', 'enabled', $enabled, $where_clause, $params);
             
         return $result !== false;
     }
@@ -606,7 +606,7 @@ class helper {
         }
         
         // Delete the records using delete_records_select for text field comparisons
-        return $DB->delete_records_select('local_profilefield_mapping', $where_clause, $params);
+        return $DB->delete_records_select('local_profilefield_autofill_mapping', $where_clause, $params);
     }
 
     /**
@@ -624,7 +624,7 @@ class helper {
             'imported' => 0,
             'updated' => 0,
             'skipped' => 0,
-            'errors' => []
+            'skipped_items' => []
         ];
         
         $updateexisting = !empty($options['updateexisting']);
@@ -636,21 +636,39 @@ class helper {
             // Skip empty rows
             if (empty(array_filter($row))) {
                 $results['skipped']++;
+                $results['skipped_items'][] = get_string('csvskippedrow', 'local_profilefield_autofill', [
+                    'row' => $rownum + 1,
+                    'reason' => get_string('csvemptyrow', 'local_profilefield_autofill')
+                ]);
                 continue;
             }
             
             // Validate required fields
             $validation = self::validate_csv_row($row, $rownum);
             if (!empty($validation)) {
-                $results['errors'] = array_merge($results['errors'], $validation);
+                foreach ($validation as $error) {
+                    // Don't add row number if error already contains it
+                    if (strpos($error, 'Row ') === 0) {
+                        $results['skipped_items'][] = $error;
+                    } else {
+                        $results['skipped_items'][] = get_string('csvskippedrow', 'local_profilefield_autofill', [
+                            'row' => $rownum + 1,
+                            'reason' => $error
+                        ]);
+                    }
+                }
                 $results['skipped']++;
                 continue;
             }
             
+            // Normalize field names - detect and convert core fields to proper format
+            $sourcefield = self::normalize_field_name(trim($row[0]));
+            $targetfield = self::normalize_field_name(trim($row[2]));
+            
             $mapping = (object)[
-                'sourcefield' => trim($row[0]),
+                'sourcefield' => $sourcefield,
                 'sourcevalue' => trim($row[1]),
-                'targetfield' => trim($row[2]),
+                'targetfield' => $targetfield,
                 'targetvalue' => trim($row[3]),
                 'enabled' => $enableimported ? 1 : 0,
                 'timecreated' => time(),
@@ -658,7 +676,7 @@ class helper {
             ];
             
             // Check if mapping already exists (using sql_compare_text for text fields)
-            $sql = "SELECT * FROM {local_profilefield_mapping} 
+            $sql = "SELECT * FROM {local_profilefield_autofill_mapping} 
                     WHERE sourcefield = :sourcefield 
                     AND " . $DB->sql_compare_text('sourcevalue') . " = " . $DB->sql_compare_text(':sourcevalue') . "
                     AND targetfield = :targetfield";
@@ -676,20 +694,30 @@ class helper {
                     $mapping->id = $existing->id;
                     $mapping->timecreated = $existing->timecreated;
                     
-                    if ($DB->update_record('local_profilefield_mapping', $mapping)) {
+                    if ($DB->update_record('local_profilefield_autofill_mapping', $mapping)) {
                         $results['updated']++;
                     } else {
-                        $results['errors'][] = get_string('errorupdatingrow', 'local_profilefield_autofill', $rownum + 1);
+                        $results['skipped_items'][] = get_string('csvskippedrow', 'local_profilefield_autofill', [
+                            'row' => $rownum + 1,
+                            'reason' => get_string('errorupdatingrow', 'local_profilefield_autofill', $rownum + 1)
+                        ]);
                         $results['skipped']++;
                     }
                 } else {
+                    $results['skipped_items'][] = get_string('csvskippedrow', 'local_profilefield_autofill', [
+                        'row' => $rownum + 1,
+                        'reason' => get_string('csvmappingexists', 'local_profilefield_autofill')
+                    ]);
                     $results['skipped']++;
                 }
             } else {
-                if ($DB->insert_record('local_profilefield_mapping', $mapping)) {
+                if ($DB->insert_record('local_profilefield_autofill_mapping', $mapping)) {
                     $results['imported']++;
                 } else {
-                    $results['errors'][] = get_string('errorimportingrow', 'local_profilefield_autofill', $rownum + 1);
+                    $results['skipped_items'][] = get_string('csvskippedrow', 'local_profilefield_autofill', [
+                        'row' => $rownum + 1,
+                        'reason' => get_string('errorimportingrow', 'local_profilefield_autofill', $rownum + 1)
+                    ]);
                     $results['skipped']++;
                 }
             }
@@ -951,5 +979,47 @@ class helper {
         }
         
         return $bestmatch;
+    }
+    
+    /**
+     * Normalize field name - detect if it's a core user field or custom profile field
+     * and return the proper internal field name
+     *
+     * @param string $fieldname Field name from CSV
+     * @return string Normalized field name
+     */
+    private static function normalize_field_name($fieldname) {
+        $fieldname = trim($fieldname);
+        
+        // If it already has profile_field_ prefix, keep it as is
+        if (strpos($fieldname, 'profile_field_') === 0) {
+            return $fieldname;
+        }
+        
+        // Define core user fields that don't need profile_field_ prefix
+        $corefields = [
+            'username', 'email', 'firstname', 'lastname', 'city', 'country',
+            'institution', 'department', 'phone1', 'phone2', 'address', 'description'
+        ];
+        
+        // If it's a core field, return as is
+        if (in_array($fieldname, $corefields)) {
+            return $fieldname;
+        }
+        
+        // Check if a custom profile field with this shortname exists
+        global $DB;
+        try {
+            $customfield = $DB->get_record('user_info_field', ['shortname' => $fieldname]);
+            if ($customfield) {
+                // It's a custom profile field, add the prefix
+                return 'profile_field_' . $fieldname;
+            }
+        } catch (Exception $e) {
+            // Database error, assume it needs the prefix
+        }
+        
+        // Default: assume it's a custom profile field and add prefix
+        return 'profile_field_' . $fieldname;
     }
 }

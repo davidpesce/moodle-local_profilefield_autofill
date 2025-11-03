@@ -124,6 +124,7 @@ $string['applymappingstask'] = 'Apply profile field mappings';
 
 // CSV Import strings
 $string['importmappings'] = 'Import Mappings';
+$string['exportmappings'] = 'Export Mappings';
 $string['csvoptions'] = 'CSV Options';
 $string['comma'] = 'Comma (,)';
 $string['semicolon'] = 'Semicolon (;)';
@@ -146,7 +147,10 @@ $string['enableimported'] = 'Enable imported mappings';
 $string['enableimported_help'] = 'Automatically enable all mappings imported from the CSV file.';
 $string['downloadtemplate'] = 'Download CSV Template';
 $string['csvimportcomplete'] = 'CSV import completed. Total: {$a->total}, Imported: {$a->imported}, Updated: {$a->updated}, Skipped: {$a->skipped}';
-$string['csvimporterrors'] = 'Import Errors:';
+$string['csvskippeditems'] = 'Skipped Items:';
+$string['csvskippedrow'] = 'Row {$a->row}: {$a->reason}';
+$string['csvemptyrow'] = 'Empty row';
+$string['csvmappingexists'] = 'Mapping already exists (update not enabled)';
 $string['csvfileempty'] = 'The uploaded CSV file is empty.';
 $string['csvnodata'] = 'No valid data found in the CSV file.';
 $string['csvrowtooshort'] = 'Row {$a} has too few columns (expected 4).';
