@@ -93,7 +93,7 @@ class local_profilefield_autofill_mapping_form extends moodleform {
         global $DB;
         $id = optional_param('id', 0, PARAM_INT);
         if ($id > 0) {
-            $mapping = $DB->get_record('local_profilefield_mapping', ['id' => $id]);
+            $mapping = $DB->get_record('local_profilefield_autofill_mapping', ['id' => $id]);
             if ($mapping) {
                 $currenttargetvalue = $mapping->targetvalue;
                 $currenttargetfield = $mapping->targetfield;

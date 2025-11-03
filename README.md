@@ -77,7 +77,7 @@ The plugin supports flexible pattern matching:
 
 ### Database Table
 
-The plugin creates a table `local_profilefield_mapping` with the following structure:
+The plugin creates a table `local_profilefield_autofill_mapping` with the following structure:
 
 - `id` - Primary key
 - `sourcefield` - Source field name (e.g., 'email', 'profile_field_department')

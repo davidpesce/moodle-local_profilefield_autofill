@@ -566,7 +566,7 @@ class helper {
         $where_clause = $sql_targetfield . ' AND ' . $sql_targetvalue;
         
         // First check if any records exist
-        $count = $DB->count_records_select('local_profilefield_mapping', $where_clause, $params);
+        $count = $DB->count_records_select('local_profilefield_autofill_mapping', $where_clause, $params);
         
         if ($count == 0) {
             return false; // No records to update
@@ -599,7 +599,7 @@ class helper {
         $where_clause = $sql_targetfield . ' AND ' . $sql_targetvalue;
         
         // First check if any records exist
-        $count = $DB->count_records_select('local_profilefield_mapping', $where_clause, $params);
+        $count = $DB->count_records_select('local_profilefield_autofill_mapping', $where_clause, $params);
         
         if ($count == 0) {
             return false; // No records to delete
