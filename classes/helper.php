@@ -392,6 +392,23 @@ class helper {
             return strcasecmp($a['targetvalue'], $b['targetvalue']);
         });
         
+        // Sort mappings within each group alphabetically by source field, then source value
+        foreach ($groups as &$group) {
+            usort($group['mappings'], function($a, $b) {
+                // First sort by formatted source field name
+                $fieldA = self::format_field_name($a->sourcefield);
+                $fieldB = self::format_field_name($b->sourcefield);
+                
+                $fieldComparison = strcasecmp($fieldA, $fieldB);
+                if ($fieldComparison !== 0) {
+                    return $fieldComparison;
+                }
+                
+                // If source field names are the same, sort by source value
+                return strcasecmp($a->sourcevalue, $b->sourcevalue);
+            });
+        }
+        
         return $groups;
     }
 
