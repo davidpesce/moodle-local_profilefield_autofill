@@ -25,9 +25,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    // Add management page directly to local plugins category.
+    // Add to Local plugins category.
     $ADMIN->add('localplugins', new admin_externalpage(
         'local_profilefield_autofill_manage',
+        get_string('pluginname', 'local_profilefield_autofill'),
+        new moodle_url('/local/profilefield_autofill/manage.php'),
+        'moodle/site:config'
+    ));
+    
+    // Add to User accounts category with different identifier.
+    $ADMIN->add('accounts', new admin_externalpage(
+        'local_profilefield_autofill_accounts',
         get_string('pluginname', 'local_profilefield_autofill'),
         new moodle_url('/local/profilefield_autofill/manage.php'),
         'moodle/site:config'

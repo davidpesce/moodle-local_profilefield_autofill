@@ -28,7 +28,17 @@ require_once(__DIR__ . '/classes/mapping_form.php');
 require_once(__DIR__ . '/classes/import_form.php');
 
 // Check admin access.
-admin_externalpage_setup('local_profilefield_autofill_manage');
+// Determine admin page context based on how we were accessed.
+global $ADMIN;
+$adminpage = 'local_profilefield_autofill_manage'; // Default to local plugins context
+
+// Check if we're being accessed from the accounts section
+$section = optional_param('section', '', PARAM_ALPHANUMEXT);
+if ($section === 'local_profilefield_autofill_accounts') {
+    $adminpage = 'local_profilefield_autofill_accounts';
+}
+
+admin_externalpage_setup($adminpage);
 
 $action = optional_param('action', '', PARAM_ALPHA);
 $id = optional_param('id', 0, PARAM_INT);
