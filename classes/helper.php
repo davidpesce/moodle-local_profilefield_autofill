@@ -428,7 +428,9 @@ class helper {
 
             // Group header with collapse functionality and bulk actions.
             echo \html_writer::start_div('card mb-3');
-            echo \html_writer::start_div('card-header bg-light d-flex justify-content-between align-items-center');
+            echo \html_writer::start_div(
+                'card-header bg-light d-flex justify-content-between profilefield-group-header-flex'
+            );
 
             // Left side - clickable header with collapse icon.
             $enabledcount = count(array_filter($group['mappings'], function ($m) {

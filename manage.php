@@ -437,7 +437,7 @@ if (empty($mappings)) {
     echo html_writer::end_div();
 
     // Search input.
-    echo html_writer::start_div('input-group input-group-sm', ['style' => 'width: 250px;']);
+    echo html_writer::start_div('input-group input-group-sm profilefield-search-group');
     echo html_writer::empty_tag('input', [
         'type' => 'text',
         'class' => 'form-control',
