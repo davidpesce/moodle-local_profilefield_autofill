@@ -59,7 +59,7 @@ class observer {
 
         // Get all enabled mappings.
         $mappings = $DB->get_records('local_profilefield_autofill_mapping', ['enabled' => 1]);
-        
+
         if (empty($mappings)) {
             return;
         }
@@ -74,54 +74,42 @@ class observer {
         profile_load_custom_fields($user);
 
         $changed = false;
-        $profilefields = [];
 
         foreach ($mappings as $mapping) {
             // Get source field value.
             $sourcevalue = self::get_field_value($user, $mapping->sourcefield);
-            
+
             if ($sourcevalue === null) {
                 continue; // Source field doesn't exist or has no value.
             }
 
             // Check if source value matches the mapping condition.
             if (self::values_match($sourcevalue, $mapping->sourcevalue)) {
-                // Check if target is a custom profile field or standard field
+                // Check if target is a custom profile field or standard field.
                 if (strpos($mapping->targetfield, 'profile_field_') === 0) {
-                    // Handle custom profile field
+                    // Handle custom profile field.
                     $shortname = substr($mapping->targetfield, strlen('profile_field_'));
                     $targetfieldinfo = self::get_custom_field_info($shortname);
                     if (!$targetfieldinfo) {
                         continue; // Target field doesn't exist.
                     }
 
-                    // Load current profile fields if not already loaded.
-                    if (empty($profilefields)) {
-                        $profilefields = profile_get_user_fields_with_data($userid);
-                    }
+                    // A user only has a user_info_data row for fields that have been written
+                    // before, so the row has to be created when it is missing. Compare against
+                    // the stored value rather than the rendered one, so that this agrees with
+                    // the apply_mappings task for menu/date/checkbox fields.
+                    $existing = $DB->get_record('user_info_data', [
+                        'userid' => $userid,
+                        'fieldid' => $targetfieldinfo->id,
+                    ]);
 
-                    // Update the custom profile field.
-                    $targetfielddata = null;
-                    foreach ($profilefields as $field) {
-                        if ($field->get_shortname() === $shortname) {
-                            $targetfielddata = $field;
-                            break;
-                        }
-                    }
-
-                    if ($targetfielddata) {
-                        // Check if the value actually needs to be changed.
-                        $currentvalue = $targetfielddata->display_data();
-                        if ($currentvalue != $mapping->targetvalue) {
-                            // Update the field value.
-                            $DB->set_field('user_info_data', 'data', $mapping->targetvalue, [
-                                'userid' => $userid,
-                                'fieldid' => $targetfieldinfo->id
-                            ]);
+                    if ($existing) {
+                        if ($existing->data !== $mapping->targetvalue) {
+                            $existing->data = $mapping->targetvalue;
+                            $DB->update_record('user_info_data', $existing);
                             $changed = true;
                         }
                     } else {
-                        // Field doesn't exist for this user, create it.
                         $record = new \stdClass();
                         $record->userid = $userid;
                         $record->fieldid = $targetfieldinfo->id;
@@ -131,10 +119,10 @@ class observer {
                         $changed = true;
                     }
                 } else {
-                    // Handle standard user field
+                    // Handle standard user field.
                     $currentvalue = isset($user->{$mapping->targetfield}) ? $user->{$mapping->targetfield} : '';
                     if ($currentvalue != $mapping->targetvalue) {
-                        // Update the standard user field
+                        // Update the standard user field.
                         $DB->set_field('user', $mapping->targetfield, $mapping->targetvalue, ['id' => $userid]);
                         $changed = true;
                     }
@@ -190,10 +178,16 @@ class observer {
             return true;
         }
 
-        // Check for wildcard patterns.
+        // Check for wildcard patterns. Quote each literal segment separately and join
+        // them with the wildcard, so that preg_quote() cannot escape the '*' itself
+        // (quoting the whole pattern first turns '*' into '\*', and replacing that
+        // '*' then yields '\.*' — a literal dot repeated, not "any characters").
         if (strpos($patternstr, '*') !== false) {
-            $pattern = str_replace('*', '.*', preg_quote($patternstr, '/'));
-            return preg_match('/^' . $pattern . '$/i', $sourcestr);
+            $segments = array_map(function ($segment) {
+                return preg_quote($segment, '/');
+            }, explode('*', $patternstr));
+            $pattern = implode('.*', $segments);
+            return (bool)preg_match('/^' . $pattern . '$/i', $sourcestr);
         }
 
         // Case-insensitive match.

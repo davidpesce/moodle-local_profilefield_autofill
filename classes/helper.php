@@ -827,9 +827,10 @@ class helper {
                     ]);
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Skip field validation if database is not accessible
             // This allows import to proceed with basic validation only
+            debugging($e->getMessage(), DEBUG_DEVELOPER);
         }
         
         return $errors;
@@ -960,7 +961,7 @@ class helper {
             
             return ['valid' => true, 'suggestion' => ''];
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // If validation fails, assume valid to avoid blocking import
             return ['valid' => true, 'suggestion' => ''];
         }
@@ -1032,8 +1033,9 @@ class helper {
                 // It's a custom profile field, add the prefix
                 return 'profile_field_' . $fieldname;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Database error, assume it needs the prefix
+            debugging($e->getMessage(), DEBUG_DEVELOPER);
         }
         
         // Default: assume it's a custom profile field and add prefix

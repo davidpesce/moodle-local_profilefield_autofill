@@ -112,27 +112,31 @@ class apply_mappings extends \core\task\scheduled_task {
         global $DB;
 
         $sourcefield = $mapping->sourcefield;
-        
-        // Handle custom profile fields vs standard user fields.
+
+        // Handle custom profile fields vs standard user fields. The comparison is
+        // case insensitive so that it agrees with the observer, which falls back to
+        // strcasecmp() and matches wildcards case insensitively.
         if (strpos($sourcefield, 'profile_field_') === 0) {
             // Custom profile field - join with user_info_data.
-            $shortname = substr($sourcefield, strlen('profile_field_'));
-            
-            $sql = "SELECT DISTINCT u.*, uid.data as source_value 
+            $like = $DB->sql_like($DB->sql_compare_text('uid.data'), ':sourcevalue', false);
+
+            $sql = "SELECT DISTINCT u.*, uid.data as source_value
                     FROM {user} u
                     JOIN {user_info_data} uid ON u.id = uid.userid
                     JOIN {user_info_field} uif ON uid.fieldid = uif.id
-                    WHERE u.deleted = 0 
-                    AND u.suspended = 0 
+                    WHERE u.deleted = 0
+                    AND u.suspended = 0
                     AND uif.shortname = :fieldshortname
-                    AND " . $DB->sql_compare_text('uid.data') . " LIKE " . $DB->sql_compare_text(':sourcevalue');
+                    AND {$like}";
         } else {
             // Standard user field.
+            $like = $DB->sql_like($DB->sql_compare_text("u.{$sourcefield}"), ':sourcevalue', false);
+
             $sql = "SELECT DISTINCT u.*, u.{$sourcefield} as source_value
                     FROM {user} u
-                    WHERE u.deleted = 0 
-                    AND u.suspended = 0 
-                    AND " . $DB->sql_compare_text("u.{$sourcefield}") . " LIKE " . $DB->sql_compare_text(':sourcevalue');
+                    WHERE u.deleted = 0
+                    AND u.suspended = 0
+                    AND {$like}";
         }
 
         return $sql;
@@ -145,16 +149,19 @@ class apply_mappings extends \core\task\scheduled_task {
      * @return array Query parameters
      */
     private function build_query_params($mapping) {
+        global $DB;
+
         $params = [];
-        
+
         // Add field shortname parameter for custom fields.
         if (strpos($mapping->sourcefield, 'profile_field_') === 0) {
             $shortname = substr($mapping->sourcefield, strlen('profile_field_'));
             $params['fieldshortname'] = $shortname;
         }
 
-        // Convert wildcard pattern to SQL LIKE pattern.
-        $sourcevalue = str_replace('*', '%', $mapping->sourcevalue);
+        // Convert the wildcard pattern to a SQL LIKE pattern. Escape first so that a
+        // literal % or _ in the mapping stays literal, then turn * into the wildcard.
+        $sourcevalue = str_replace('*', '%', $DB->sql_like_escape($mapping->sourcevalue));
         $params['sourcevalue'] = $sourcevalue;
 
         return $params;
