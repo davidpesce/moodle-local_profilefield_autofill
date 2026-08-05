@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025110402;        // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version   = 2026080500;        // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2024041600;        // Requires Moodle 4.4 or later.
 $plugin->component = 'local_profilefield_autofill'; // Full name of the plugin (used for diagnostics).
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.2.0';
+$plugin->release   = '1.2.1';
