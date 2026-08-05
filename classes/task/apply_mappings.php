@@ -24,13 +24,10 @@
 
 namespace local_profilefield_autofill\task;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Scheduled task to apply profile field mappings to users
  */
 class apply_mappings extends \core\task\scheduled_task {
-
     /**
      * Get a descriptive name for this task (shown to admins).
      *
@@ -48,7 +45,7 @@ class apply_mappings extends \core\task\scheduled_task {
 
         // Get all enabled mappings.
         $mappings = \local_profilefield_autofill\helper::get_all_mappings();
-        $enabledmappings = array_filter($mappings, function($mapping) {
+        $enabledmappings = array_filter($mappings, function ($mapping) {
             return $mapping->enabled;
         });
 
@@ -64,7 +61,8 @@ class apply_mappings extends \core\task\scheduled_task {
 
         // Process each mapping.
         foreach ($enabledmappings as $mapping) {
-            mtrace("Processing mapping: {$mapping->sourcefield} = '{$mapping->sourcevalue}' → {$mapping->targetfield} = '{$mapping->targetvalue}'");
+            mtrace("Processing mapping: {$mapping->sourcefield} = '{$mapping->sourcevalue}'"
+                . " → {$mapping->targetfield} = '{$mapping->targetvalue}'");
 
             // Build the query to find matching users.
             $sql = $this->build_user_query($mapping);
@@ -92,7 +90,6 @@ class apply_mappings extends \core\task\scheduled_task {
 
                 $totalusers += $usercount;
                 $totalupdates += $updates;
-
             } catch (\Exception $e) {
                 mtrace("  ERROR processing mapping: " . $e->getMessage());
                 continue;
@@ -184,7 +181,7 @@ class apply_mappings extends \core\task\scheduled_task {
             if (strpos($targetfield, 'profile_field_') === 0) {
                 // Custom profile field.
                 $shortname = substr($targetfield, strlen('profile_field_'));
-                
+
                 // Get the field definition.
                 $field = $DB->get_record('user_info_field', ['shortname' => $shortname]);
                 if (!$field) {
@@ -195,7 +192,7 @@ class apply_mappings extends \core\task\scheduled_task {
                 // Check if user already has this value.
                 $existing = $DB->get_record('user_info_data', [
                     'userid' => $user->id,
-                    'fieldid' => $field->id
+                    'fieldid' => $field->id,
                 ]);
 
                 if ($existing && $existing->data === $targetvalue) {
@@ -218,7 +215,6 @@ class apply_mappings extends \core\task\scheduled_task {
 
                 mtrace("    Updated user {$user->id} ({$user->username}): {$targetfield} = '{$targetvalue}'");
                 return true;
-
             } else {
                 // Standard user field.
                 // Check if user already has this value.
@@ -237,7 +233,6 @@ class apply_mappings extends \core\task\scheduled_task {
                 mtrace("    Updated user {$user->id} ({$user->username}): {$targetfield} = '{$targetvalue}'");
                 return true;
             }
-
         } catch (\Exception $e) {
             mtrace("    ERROR updating user {$user->id}: " . $e->getMessage());
             return false;

@@ -78,15 +78,16 @@ define(['jquery'], function($) {
     };
 
     SearchHandler.prototype.showAllElements = function(table, container) {
+        var i;
         if (table) {
             var rows = table.querySelectorAll('tbody tr');
-            for (var i = 0; i < rows.length; i++) {
+            for (i = 0; i < rows.length; i++) {
                 rows[i].style.display = '';
             }
         }
         if (container) {
             var cards = container.querySelectorAll('.card');
-            for (var i = 0; i < cards.length; i++) {
+            for (i = 0; i < cards.length; i++) {
                 cards[i].style.display = '';
             }
         }

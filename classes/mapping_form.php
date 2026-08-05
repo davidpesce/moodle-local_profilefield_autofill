@@ -30,7 +30,6 @@ require_once($CFG->libdir . '/formslib.php');
  * Form for adding/editing profile field mappings
  */
 class local_profilefield_autofill_mapping_form extends moodleform {
-
     /**
      * Define the form
      */
@@ -43,7 +42,7 @@ class local_profilefield_autofill_mapping_form extends moodleform {
 
         // Source field selection.
         $sourceoptions = \local_profilefield_autofill\helper::get_source_field_options();
-        // Flatten the grouped options for now to avoid selectgroups issues
+        // Flatten the grouped options for now to avoid selectgroups issues.
         $flatsourceoptions = ['' => get_string('choosefield', 'local_profilefield_autofill')];
         foreach ($sourceoptions as $group => $options) {
             foreach ($options as $key => $value) {
@@ -65,7 +64,7 @@ class local_profilefield_autofill_mapping_form extends moodleform {
 
         // Target field selection.
         $targetoptions = \local_profilefield_autofill\helper::get_target_field_options();
-        // Flatten the grouped options for consistency with source field
+        // Flatten the grouped options for consistency with source field.
         $flattargetoptions = ['' => get_string('choosefield', 'local_profilefield_autofill')];
         foreach ($targetoptions as $group => $options) {
             foreach ($options as $key => $value) {
@@ -76,20 +75,20 @@ class local_profilefield_autofill_mapping_form extends moodleform {
         $mform->addHelpButton('targetfield', 'targetfield', 'local_profilefield_autofill');
         $mform->addRule('targetfield', get_string('required'), 'required', null, 'client');
 
-        // Target value - will be replaced dynamically based on field type
+        // Target value - will be replaced dynamically based on field type.
         $mform->addElement('text', 'targetvalue', get_string('targetvalue', 'local_profilefield_autofill'), ['size' => 50]);
         $mform->setType('targetvalue', PARAM_TEXT);
         $mform->addHelpButton('targetvalue', 'targetvalue', 'local_profilefield_autofill');
         $mform->addRule('targetvalue', get_string('required'), 'required', null, 'client');
-        
-        // Add JavaScript for dynamic field updates using AMD
+
+        // Add JavaScript for dynamic field updates using AMD.
         $this->add_field_type_javascript();
-        
-        // Get current values for editing
+
+        // Get current values for editing.
         $currenttargetvalue = '';
         $currenttargetfield = '';
-        
-        // Try to get from optional params (when editing)
+
+        // Try to get from optional params (when editing).
         global $DB;
         $id = optional_param('id', 0, PARAM_INT);
         if ($id > 0) {
@@ -114,17 +113,17 @@ class local_profilefield_autofill_mapping_form extends moodleform {
      */
     protected function add_field_type_javascript() {
         global $PAGE, $DB;
-        
-        // Get field type information for JavaScript
+
+        // Get field type information for JavaScript.
         $fieldtypes = $this->get_field_type_data();
-        
-        // Get current values for editing
+
+        // Get current values for editing.
         $currenttargetvalue = '';
         $currenttargetfield = '';
         $currentsourcevalue = '';
         $currentsourcefield = '';
-        
-        // Try to get from optional params (when editing)
+
+        // Try to get from optional params (when editing).
         $id = optional_param('id', 0, PARAM_INT);
         if ($id > 0) {
             $mapping = $DB->get_record('local_profilefield_autofill_mapping', ['id' => $id]);
@@ -135,14 +134,14 @@ class local_profilefield_autofill_mapping_form extends moodleform {
                 $currentsourcefield = $mapping->sourcefield;
             }
         }
-        
-        // Call AMD module with parameters
+
+        // Call AMD module with parameters.
         $PAGE->requires->js_call_amd('local_profilefield_autofill/form_handler', 'init', [
             $fieldtypes,
             $currenttargetfield,
             $currenttargetvalue,
             $currentsourcefield,
-            $currentsourcevalue
+            $currentsourcevalue,
         ]);
     }
 
@@ -152,21 +151,21 @@ class local_profilefield_autofill_mapping_form extends moodleform {
      */
     protected function get_field_type_data() {
         global $DB;
-        
+
         $fieldtypes = [];
-        
-        // Get custom profile field types
+
+        // Get custom profile field types.
         $customfields = $DB->get_records('user_info_field');
         foreach ($customfields as $field) {
             $fieldkey = 'profile_field_' . $field->shortname;
             $fieldtypes[$fieldkey] = [
                 'type' => $field->datatype,
                 'description' => $field->description,
-                'options' => $field->param1 // For menu fields, param1 contains options
+                'options' => $field->param1, // For menu fields, param1 contains options.
             ];
         }
-        
-        // Add standard fields with their types
+
+        // Add standard fields with their types.
         $standardfields = [
             'city' => ['type' => 'text', 'description' => 'User city'],
             'country' => ['type' => 'text', 'description' => 'User country code'],
@@ -175,11 +174,11 @@ class local_profilefield_autofill_mapping_form extends moodleform {
             'phone1' => ['type' => 'text', 'description' => 'Primary phone number'],
             'phone2' => ['type' => 'text', 'description' => 'Secondary phone number'],
             'address' => ['type' => 'text', 'description' => 'User address'],
-            'description' => ['type' => 'textarea', 'description' => 'User description']
+            'description' => ['type' => 'textarea', 'description' => 'User description'],
         ];
-        
+
         $fieldtypes = array_merge($fieldtypes, $standardfields);
-        
+
         return $fieldtypes;
     }
 

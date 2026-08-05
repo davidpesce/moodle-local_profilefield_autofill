@@ -32,7 +32,7 @@ if ($hassiteconfig) {
         new moodle_url('/local/profilefield_autofill/manage.php'),
         'moodle/site:config'
     ));
-    
+
     // Add to User accounts category with different identifier.
     $ADMIN->add('accounts', new admin_externalpage(
         'local_profilefield_autofill_accounts',

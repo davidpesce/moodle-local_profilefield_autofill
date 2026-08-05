@@ -30,67 +30,71 @@ require_once($CFG->libdir . '/formslib.php');
  * Form for importing profile field mappings from CSV
  */
 class local_profilefield_autofill_import_form extends moodleform {
-
     /**
      * Define the form
      */
     protected function definition() {
         $mform = $this->_form;
 
-        // Form header
+        // Form header.
         $mform->addElement('header', 'importheader', get_string('importmappings', 'local_profilefield_autofill'));
 
-        // File upload
-        $mform->addElement('filepicker', 'csvfile', get_string('csvfile', 'local_profilefield_autofill'), 
-            null, ['accepted_types' => ['.csv']]);
+        // File upload.
+        $mform->addElement(
+            'filepicker',
+            'csvfile',
+            get_string('csvfile', 'local_profilefield_autofill'),
+            null,
+            ['accepted_types' => ['.csv']]
+        );
         $mform->addRule('csvfile', get_string('required'), 'required', null, 'client');
         $mform->addHelpButton('csvfile', 'csvfile', 'local_profilefield_autofill');
 
-        // CSV options
+        // CSV options.
         $mform->addElement('header', 'csvoptions', get_string('csvoptions', 'local_profilefield_autofill'));
 
-        // Delimiter
+        // Delimiter.
         $delimiteroptions = [
             ',' => get_string('comma', 'local_profilefield_autofill'),
             ';' => get_string('semicolon', 'local_profilefield_autofill'),
             '\t' => get_string('tab', 'local_profilefield_autofill'),
-            '|' => get_string('pipe', 'local_profilefield_autofill')
+            '|' => get_string('pipe', 'local_profilefield_autofill'),
         ];
         $mform->addElement('select', 'delimiter', get_string('delimiter', 'local_profilefield_autofill'), $delimiteroptions);
         $mform->setDefault('delimiter', ',');
         $mform->addHelpButton('delimiter', 'delimiter', 'local_profilefield_autofill');
 
-        // Encoding
+        // Encoding.
         $encodingoptions = [
             'UTF-8' => 'UTF-8',
             'ISO-8859-1' => 'ISO-8859-1',
-            'Windows-1252' => 'Windows-1252'
+            'Windows-1252' => 'Windows-1252',
         ];
         $mform->addElement('select', 'encoding', get_string('encoding', 'local_profilefield_autofill'), $encodingoptions);
         $mform->setDefault('encoding', 'UTF-8');
 
-        // Has header row
+        // Has header row.
         $mform->addElement('advcheckbox', 'hasheader', get_string('hasheader', 'local_profilefield_autofill'));
         $mform->setDefault('hasheader', 1);
         $mform->addHelpButton('hasheader', 'hasheader', 'local_profilefield_autofill');
 
-        // Import options
+        // Import options.
         $mform->addElement('header', 'importoptions', get_string('importoptions', 'local_profilefield_autofill'));
 
-        // Update existing records
+        // Update existing records.
         $mform->addElement('advcheckbox', 'updateexisting', get_string('updateexisting', 'local_profilefield_autofill'));
         $mform->setDefault('updateexisting', 0);
         $mform->addHelpButton('updateexisting', 'updateexisting', 'local_profilefield_autofill');
 
-        // Enable imported mappings
+        // Enable imported mappings.
         $mform->addElement('advcheckbox', 'enableimported', get_string('enableimported', 'local_profilefield_autofill'));
         $mform->setDefault('enableimported', 1);
 
-        // Add format information
+        // Add format information.
         $formatinfo = get_string('csvformatinfo', 'local_profilefield_autofill');
         $mform->addElement('static', 'formatinfo', get_string('csvformat', 'local_profilefield_autofill'), $formatinfo);
 
-        // Action buttons
+        // Action buttons.
         $this->add_action_buttons(true, get_string('import', 'local_profilefield_autofill'));
     }
 
@@ -105,38 +109,38 @@ class local_profilefield_autofill_import_form extends moodleform {
         global $USER;
         $errors = parent::validation($data, $files);
 
-        // Validate CSV file
+        // Validate CSV file.
         if (!empty($data['csvfile'])) {
             try {
                 $draftitemid = $data['csvfile'];
                 $fs = get_file_storage();
                 $context = context_user::instance($USER->id);
-                
+
                 $files = $fs->get_area_files($context->id, 'user', 'draft', $draftitemid, 'id', false);
                 if (!empty($files)) {
                     $file = reset($files);
                     $filename = $file->get_filename();
-                    
-                    // Check file extension
+
+                    // Check file extension.
                     $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                     if ($extension !== 'csv') {
                         $errors['csvfile'] = get_string('invalidfiletype', 'local_profilefield_autofill');
                     }
-                    
-                    // Check file size (max 2MB)
+
+                    // Check file size (max 2MB).
                     if ($file->get_filesize() > 2 * 1024 * 1024) {
                         $errors['csvfile'] = get_string('filesizetoobig', 'local_profilefield_autofill');
                     }
                 }
             } catch (Exception $e) {
-                // If there's an issue accessing the file, add a generic error
+                // If there's an issue accessing the file, add a generic error.
                 $errors['csvfile'] = 'Error validating file: ' . $e->getMessage();
             }
         }
 
         return $errors;
     }
-    
+
     /**
      * Get the content of uploaded CSV file
      *
@@ -145,21 +149,21 @@ class local_profilefield_autofill_import_form extends moodleform {
      */
     public function get_file_content($elementname) {
         global $USER;
-        
+
         $data = $this->get_data();
         if (empty($data->$elementname)) {
             return '';
         }
-        
+
         $draftitemid = $data->$elementname;
         $fs = get_file_storage();
         $context = context_user::instance($USER->id);
-        
+
         $files = $fs->get_area_files($context->id, 'user', 'draft', $draftitemid, 'id', false);
         if (empty($files)) {
             return '';
         }
-        
+
         $file = reset($files);
         return $file->get_content();
     }

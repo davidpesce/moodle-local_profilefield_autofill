@@ -28,7 +28,6 @@ namespace local_profilefield_autofill;
  * Event observer class for profile field auto-fill functionality
  */
 class observer {
-
     /**
      * Observer for user_created event
      *
