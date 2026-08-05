@@ -51,6 +51,13 @@ $PAGE->set_heading(get_string('pluginname', 'local_profilefield_autofill'));
 $PAGE->navbar->ignore_active();
 $PAGE->set_pagelayout('admin');
 
+// Scope for this plugin's stylesheet. Set explicitly rather than relying on the
+// body class Moodle derives from the pagetype: admin_externalpage_setup() above
+// prefixes the pagetype with 'admin-', so the derived class is
+// path-admin-local-profilefield_autofill, which is easy to get wrong and would
+// change if this page stopped being an admin external page.
+$PAGE->add_body_class('local-profilefield-autofill');
+
 // Add custom CSS for grouped view.
 $PAGE->requires->css('/local/profilefield_autofill/styles.css');
 

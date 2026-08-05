@@ -2,34 +2,38 @@
  *
  * Moodle concatenates each plugin's styles.css into the site-wide stylesheet
  * that loads on every page, so bare Bootstrap selectors such as .card, .badge
- * or code would restyle the entire site. The scope is the body class Moodle
- * derives from the pagetype (local-profilefield_autofill-manage), which keeps
- * the underscore of the plugin directory name. */
+ * or code would restyle the entire site.
+ *
+ * The scope class is added explicitly by manage.php via add_body_class(). Do
+ * not swap it for the path- class Moodle derives from the pagetype: manage.php
+ * calls admin_externalpage_setup(), which prefixes the pagetype with 'admin-',
+ * so the derived class is path-admin-local-profilefield_autofill rather than
+ * the path-local-... form the directory name suggests. */
 
 /* Basic styles for grouped view */
-body.path-local-profilefield_autofill .profilefield-group-card {
+body.local-profilefield-autofill .profilefield-group-card {
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
 }
 
-body.path-local-profilefield_autofill .profilefield-group-header {
+body.local-profilefield-autofill .profilefield-group-header {
     background-color: #f8f9fa;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid #dee2e6;
 }
 
-body.path-local-profilefield_autofill .profilefield-mapping-item {
+body.local-profilefield-autofill .profilefield-mapping-item {
     padding: 0.5rem;
     border-bottom: 1px solid #eee;
 }
 
-body.path-local-profilefield_autofill .profilefield-mapping-item:last-child {
+body.local-profilefield-autofill .profilefield-mapping-item:last-child {
     border-bottom: none;
 }
 
 /* Collapse functionality styles. The scope gives these enough specificity to
  * beat Bootstrap's .btn:focus without !important. */
-body.path-local-profilefield_autofill .card-header button {
+body.local-profilefield-autofill .card-header button {
     width: 100%;
     text-align: left;
     border: none;
@@ -40,41 +44,41 @@ body.path-local-profilefield_autofill .card-header button {
     box-shadow: none;
 }
 
-body.path-local-profilefield_autofill .card-header button:hover {
+body.local-profilefield-autofill .card-header button:hover {
     text-decoration: none;
     background-color: rgba(0, 0, 0, 0.05);
 }
 
-body.path-local-profilefield_autofill .card-header button:focus {
+body.local-profilefield-autofill .card-header button:focus {
     outline: none;
     box-shadow: none;
 }
 
 /* Rotate chevron icon when expanded */
-body.path-local-profilefield_autofill .card-header button[aria-expanded="true"] i.fa-chevron-down {
+body.local-profilefield-autofill .card-header button[aria-expanded="true"] i.fa-chevron-down {
     transform: rotate(180deg);
 }
 
-body.path-local-profilefield_autofill .card-header button i.fa-chevron-down {
+body.local-profilefield-autofill .card-header button i.fa-chevron-down {
     transition: transform 0.2s ease-in-out;
 }
 
 /* Smooth collapse animation */
-body.path-local-profilefield_autofill .collapse {
+body.local-profilefield-autofill .collapse {
     transition: all 0.3s ease-in-out;
 }
 
 /* Group hover effects */
-body.path-local-profilefield_autofill .card {
+body.local-profilefield-autofill .card {
     transition: box-shadow 0.15s ease-in-out;
 }
 
-body.path-local-profilefield_autofill .card:hover {
+body.local-profilefield-autofill .card:hover {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 /* Native Moodle action icons */
-body.path-local-profilefield_autofill .action-icon {
+body.local-profilefield-autofill .action-icon {
     text-decoration: none;
     display: inline-block;
     padding: 0.5rem;
@@ -84,95 +88,95 @@ body.path-local-profilefield_autofill .action-icon {
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
 }
 
-body.path-local-profilefield_autofill .action-icon:last-child {
+body.local-profilefield-autofill .action-icon:last-child {
     margin-right: 0;
 }
 
-body.path-local-profilefield_autofill .action-icon:hover {
+body.local-profilefield-autofill .action-icon:hover {
     background-color: rgba(0, 0, 0, 0.05);
     text-decoration: none;
 }
 
-body.path-local-profilefield_autofill .action-icon:focus {
+body.local-profilefield-autofill .action-icon:focus {
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-body.path-local-profilefield_autofill .action-icon i {
+body.local-profilefield-autofill .action-icon i {
     font-size: 1rem;
 }
 
 /* Group header alignment. Set here rather than with Bootstrap's
  * .align-items-center utility, so the responsive rule below can override it
  * without having to out-!important the utility. */
-body.path-local-profilefield_autofill .profilefield-group-header-flex {
+body.local-profilefield-autofill .profilefield-group-header-flex {
     align-items: center;
 }
 
 /* Normalize card headers between pages */
-body.path-local-profilefield_autofill .profilefield-group-header h6 {
+body.local-profilefield-autofill .profilefield-group-header h6 {
     font-size: 1.1rem;
     font-weight: 500;
     margin-bottom: 0;
 }
 
 /* Consistent spacing for bulk management cards */
-body.path-local-profilefield_autofill .card.profilefield-group-card {
+body.local-profilefield-autofill .card.profilefield-group-card {
     margin-bottom: 1.5rem;
 }
 
 /* Normalize alert styling in bulk manage */
-body.path-local-profilefield_autofill .card-body .alert {
+body.local-profilefield-autofill .card-body .alert {
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
     padding: 0.5rem 0.75rem;
 }
 
-body.path-local-profilefield_autofill .card-body .alert:last-child {
+body.local-profilefield-autofill .card-body .alert:last-child {
     margin-bottom: 0;
 }
 
 /* Consistent badge sizing */
-body.path-local-profilefield_autofill .badge {
+body.local-profilefield-autofill .badge {
     font-size: 0.8rem;
     padding: 0.25rem 0.5rem;
 }
 
 /* Button group spacing consistency */
-body.path-local-profilefield_autofill .btn-group .btn-sm {
+body.local-profilefield-autofill .btn-group .btn-sm {
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem;
 }
 
 /* Code tag consistency */
-body.path-local-profilefield_autofill code {
+body.local-profilefield-autofill code {
     font-size: 0.875rem;
     padding: 0.125rem 0.25rem;
 }
 
 /* Search input styling. The width lives here rather than in an inline style on
  * the markup, so that the responsive rule below can override it. */
-body.path-local-profilefield_autofill .profilefield-search-group {
+body.local-profilefield-autofill .profilefield-search-group {
     width: 250px;
 }
 
-body.path-local-profilefield_autofill .input-group-sm .form-control {
+body.local-profilefield-autofill .input-group-sm .form-control {
     border-radius: 0.25rem 0 0 0.25rem;
 }
 
-body.path-local-profilefield_autofill .input-group-sm .input-group-text {
+body.local-profilefield-autofill .input-group-sm .input-group-text {
     border-radius: 0 0.25rem 0.25rem 0;
     background-color: #f8f9fa;
     border-left: 0;
 }
 
-body.path-local-profilefield_autofill #mapping-search:focus {
+body.local-profilefield-autofill #mapping-search:focus {
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 /* Search results highlighting */
-body.path-local-profilefield_autofill .search-no-results {
+body.local-profilefield-autofill .search-no-results {
     text-align: center;
     padding: 2rem;
     color: #6c757d;
@@ -180,7 +184,7 @@ body.path-local-profilefield_autofill .search-no-results {
 }
 
 /* Bulk action buttons in card headers */
-body.path-local-profilefield_autofill .card-header .btn-group-sm .btn {
+body.local-profilefield-autofill .card-header .btn-group-sm .btn {
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
     line-height: 1.5;
@@ -188,12 +192,12 @@ body.path-local-profilefield_autofill .card-header .btn-group-sm .btn {
 
 /* Responsive search and controls layout */
 @media (max-width: 768px) {
-    body.path-local-profilefield_autofill .d-flex.justify-content-between {
+    body.local-profilefield-autofill .d-flex.justify-content-between {
         flex-direction: column;
         gap: 0.75rem;
     }
 
-    body.path-local-profilefield_autofill .profilefield-search-group {
+    body.local-profilefield-autofill .profilefield-search-group {
         width: 100%;
     }
 }
@@ -202,17 +206,17 @@ body.path-local-profilefield_autofill .card-header .btn-group-sm .btn {
  * rather than with Bootstrap's .align-items-center utility, whose own
  * !important would otherwise have to be fought with another one. */
 @media (max-width: 768px) {
-    body.path-local-profilefield_autofill .profilefield-group-header-flex {
+    body.local-profilefield-autofill .profilefield-group-header-flex {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    body.path-local-profilefield_autofill .card-header .btn-group {
+    body.local-profilefield-autofill .card-header .btn-group {
         margin-top: 0.5rem;
         width: 100%;
     }
 
-    body.path-local-profilefield_autofill .card-header .btn-group .btn {
+    body.local-profilefield-autofill .card-header .btn-group .btn {
         flex: 1;
         font-size: 0.75rem;
     }
