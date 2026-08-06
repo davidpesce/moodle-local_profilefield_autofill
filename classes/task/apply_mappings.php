@@ -74,20 +74,28 @@ class apply_mappings extends \core\task\scheduled_task {
             $params = $this->build_query_params($mapping);
 
             try {
-                // Get users that match the source condition.
-                $users = $DB->get_records_sql($sql, $params);
-                $usercount = count($users);
+                // Iterate rather than materialise: a mapping may match every user
+                // on the site (a source value of '*' becomes LIKE '%'), and holding
+                // that whole result set in memory is what a recordset avoids. The
+                // count therefore has to be accumulated as we go.
+                $usercount = 0;
                 $updates = 0;
 
-                if ($usercount > 0) {
-                    mtrace("  Found {$usercount} users matching source condition");
-
-                    foreach ($users as $user) {
+                $rs = $DB->get_recordset_sql($sql, $params);
+                try {
+                    foreach ($rs as $user) {
+                        $usercount++;
                         if ($this->update_user_field($user, $mapping)) {
                             $updates++;
                         }
                     }
+                } finally {
+                    // Release the cursor even if a row fails mid-iteration.
+                    $rs->close();
+                }
 
+                if ($usercount > 0) {
+                    mtrace("  Found {$usercount} users matching source condition");
                     mtrace("  Updated {$updates} users");
                 } else {
                     mtrace("  No users found matching source condition");

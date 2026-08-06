@@ -899,19 +899,42 @@ class helper {
             $content = mb_convert_encoding($content, 'UTF-8', $encoding);
         }
 
+        // Strip a UTF-8 byte order mark. Spreadsheet applications add one, and so
+        // does this plugin's own export, so a file exported and then re-imported
+        // would otherwise carry the mark into the first column of the first row.
+        if (strncmp($content, "\xEF\xBB\xBF", 3) === 0) {
+            $content = substr($content, 3);
+        }
+
         // Handle different delimiters.
         if ($delimiter === '\t') {
             $delimiter = "\t";
         }
 
-        // Parse CSV.
-        $lines = str_getcsv($content, "\n");
+        // Parse the content as a stream rather than splitting it into lines first.
+        // A quoted value may legitimately contain the line terminator, and
+        // splitting on "\n" tears such a record into two malformed rows; letting
+        // fgetcsv() walk the stream keeps the quoting rules intact and copes with
+        // CRLF endings. Core's csv_import_reader would be the usual choice, but its
+        // delimiter list has no pipe, which this plugin offers.
         $data = [];
+        $stream = fopen('php://memory', 'r+');
+        try {
+            fwrite($stream, $content);
+            rewind($stream);
 
-        foreach ($lines as $line) {
-            if (trim($line)) {
-                $data[] = str_getcsv($line, $delimiter);
+            while (($row = fgetcsv($stream, 0, $delimiter, '"', '')) !== false) {
+                // A blank line is reported by fgetcsv() as a single null field.
+                if ($row === [null]) {
+                    continue;
+                }
+                if (implode('', array_map('strval', $row)) === '') {
+                    continue;
+                }
+                $data[] = $row;
             }
+        } finally {
+            fclose($stream);
         }
 
         // Remove header if present.
@@ -923,33 +946,76 @@ class helper {
     }
 
     /**
-     * Generate CSV template content
+     * Column names used by both the CSV export and the downloadable template.
      *
-     * @return string CSV template with headers and example data
+     * @return string[] Column names in order
      */
-    public static function generate_csv_template() {
-        $headers = [
-            'sourcefield',
-            'sourcevalue',
-            'targetfield',
-            'targetvalue',
-        ];
+    public static function get_csv_columns() {
+        return ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
+    }
 
+    /**
+     * Example rows for the downloadable CSV template.
+     *
+     * @return array[] Rows keyed by the column names
+     */
+    public static function get_csv_template_rows() {
         $examples = [
-            ['email', '*@university.edu', 'profile_field_institution', 'University Name'],
-            ['city', 'Boston', 'profile_field_region', 'Northeast'],
-            ['profile_field_department', 'IT', 'profile_field_autofill', 'Technology'],
+            ['email', '*@university.edu', 'institution', 'University Name'],
+            ['email', '*@company.com', 'institution', 'Corporate Training'],
+            ['city', 'Boston', 'department', 'IT Department'],
+            ['lastname', 'Smith', 'country', 'US'],
+            ['profile_field_customfieldshortname', 'Smith', 'country', 'US'],
         ];
 
-        $csv = implode(',', $headers) . "\n";
+        $columns = self::get_csv_columns();
+        return array_map(function ($example) use ($columns) {
+            return array_combine($columns, $example);
+        }, $examples);
+    }
 
-        foreach ($examples as $example) {
-            $csv .= implode(',', array_map(function ($field) {
-                return '"' . str_replace('"', '""', $field) . '"';
-            }, $example)) . "\n";
+    /**
+     * Neutralise a value a spreadsheet would otherwise evaluate as a formula.
+     *
+     * A cell beginning with =, +, - or @ is treated as a formula by Excel and
+     * Sheets, so an exported value reopened there could execute rather than
+     * display. Prefixing with an apostrophe forces it to be read as text. The
+     * values here are administrator-authored, so this is a precaution rather
+     * than a fix for a live problem.
+     *
+     * Core grew \core\dataformat::escape_spreadsheet_formula() for this, and the
+     * dataformat writers now apply it themselves — but both arrived in MDL-72744
+     * (November 2025), after the 4.5.0 this plugin declares as its minimum, so
+     * calling it directly would fatal on an early 4.5 site and CI would not
+     * notice because it installs the tip of the branch. This mirrors core's rules
+     * so the two agree; applying both is harmless, because a value already
+     * prefixed with an apostrophe no longer starts with a formula character.
+     *
+     * @param string $value Cell value
+     * @return string Value safe to place in a spreadsheet cell
+     */
+    public static function escape_csv_formula($value) {
+        if (!is_string($value)) {
+            return $value;
         }
 
-        return $csv;
+        // A lone dash is Moodle's placeholder for "no value", not a formula.
+        if ($value === '-') {
+            return $value;
+        }
+
+        // Check the trimmed value but return the original, so that leading
+        // whitespace the administrator entered is preserved.
+        $trimmed = ltrim($value);
+        if ($trimmed === '') {
+            return $value;
+        }
+
+        if (in_array($trimmed[0], ['=', '+', '-', '@'], true)) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 
     /**
@@ -989,11 +1055,15 @@ class helper {
 
                 // Find closest match for suggestion.
                 $suggestion = self::find_closest_match($value, $options);
+                $optionlist = implode(', ', $options);
                 return [
                     'valid' => false,
                     'suggestion' => $suggestion
-                        ? "Did you mean '{$suggestion}'? Available options: " . implode(', ', $options)
-                        : "Available options: " . implode(', ', $options),
+                        ? get_string('csvsuggestion', 'local_profilefield_autofill', (object)[
+                            'suggestion' => $suggestion,
+                            'options' => $optionlist,
+                        ])
+                        : get_string('csvavailableoptions', 'local_profilefield_autofill', $optionlist),
                 ];
             }
 
@@ -1005,7 +1075,7 @@ class helper {
                 }
                 return [
                     'valid' => false,
-                    'suggestion' => "For checkbox fields, use: 1, 0, yes, no, true, false, on, or off",
+                    'suggestion' => get_string('csvcheckboxvalues', 'local_profilefield_autofill'),
                 ];
             }
 

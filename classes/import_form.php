@@ -134,7 +134,11 @@ class local_profilefield_autofill_import_form extends moodleform {
                 }
             } catch (Exception $e) {
                 // If there's an issue accessing the file, add a generic error.
-                $errors['csvfile'] = 'Error validating file: ' . $e->getMessage();
+                $errors['csvfile'] = get_string(
+                    'errorvalidatefile',
+                    'local_profilefield_autofill',
+                    $e->getMessage()
+                );
             }
         }
 

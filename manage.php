@@ -219,7 +219,12 @@ if ($action === 'import') {
 
             redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
         } catch (Exception $e) {
-            redirect($PAGE->url, 'Error importing CSV: ' . $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+            redirect(
+                $PAGE->url,
+                get_string('errorimportcsv', 'local_profilefield_autofill', $e->getMessage()),
+                null,
+                \core\output\notification::NOTIFY_ERROR
+            );
         }
     }
 
@@ -247,62 +252,41 @@ if ($action === 'import') {
 
 // Handle CSV template download.
 if ($action === 'template') {
-    $filename = 'profilefield_mappings_template.csv';
+    $columns = \local_profilefield_autofill\helper::get_csv_columns();
 
-    // Simple template content without database dependency.
-    $headers = ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
-    $examples = [
-        ['email', '*@university.edu', 'institution', 'University Name'],
-        ['email', '*@company.com', 'institution', 'Corporate Training'],
-        ['city', 'Boston', 'department', 'IT Department'],
-        ['city', 'New York', 'department', 'Marketing Department'],
-        ['lastname', 'Smith', 'country', 'US'],
-        ['profile_field_customfieldshortname', 'Smith', 'country', 'US'],
-    ];
-
-    $content = implode(',', $headers) . "\n";
-    foreach ($examples as $example) {
-        $content .= implode(',', array_map(function ($field) {
-            return '"' . str_replace('"', '""', $field) . '"';
-        }, $example)) . "\n";
-    }
-
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Content-Length: ' . strlen($content));
-
-    echo $content;
-    exit;
+    // Downloads go through core's dataformat writer rather than hand-rolled
+    // header() and echo calls, so quoting and content headers are core's problem.
+    // download_data() sends the response and exits.
+    \core\dataformat::download_data(
+        'profilefield_mappings_template',
+        'csv',
+        array_combine($columns, $columns),
+        \local_profilefield_autofill\helper::get_csv_template_rows()
+    );
 }
 
 // Handle CSV export.
 if ($action === 'export') {
     $mappings = \local_profilefield_autofill\helper::get_all_mappings();
+    $columns = \local_profilefield_autofill\helper::get_csv_columns();
 
-    $filename = 'profilefield_mappings_export_' . date('Y-m-d') . '.csv';
-    $headers = ['sourcefield', 'sourcevalue', 'targetfield', 'targetvalue'];
-
-    $content = implode(',', $headers) . "\n";
-
+    $rows = [];
     foreach ($mappings as $mapping) {
-        $row = [
-            $mapping->sourcefield,
-            $mapping->sourcevalue,
-            $mapping->targetfield,
-            $mapping->targetvalue,
-        ];
-
-        $content .= implode(',', array_map(function ($field) {
-            return '"' . str_replace('"', '""', $field) . '"';
-        }, $row)) . "\n";
+        $row = [];
+        foreach ($columns as $column) {
+            // Administrator-authored values, but neutralise anything a
+            // spreadsheet would evaluate as a formula on reopening the file.
+            $row[$column] = \local_profilefield_autofill\helper::escape_csv_formula($mapping->$column);
+        }
+        $rows[] = $row;
     }
 
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Content-Length: ' . strlen($content));
-
-    echo $content;
-    exit;
+    \core\dataformat::download_data(
+        'profilefield_mappings_export_' . date('Y-m-d'),
+        'csv',
+        array_combine($columns, $columns),
+        $rows
+    );
 }
 
 // Handle form for adding/editing mappings.
@@ -363,7 +347,12 @@ if ($action === 'add' || ($action === 'edit' && $id > 0)) {
         } catch (Exception $e) {
             $returnurl = optional_param('returnurl', '', PARAM_URL);
             $redirecturl = $returnurl ? new moodle_url($returnurl) : $PAGE->url;
-            redirect($redirecturl, 'Error saving mapping: ' . $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
+            redirect(
+                $redirecturl,
+                get_string('errorsavemapping', 'local_profilefield_autofill', $e->getMessage()),
+                null,
+                \core\output\notification::NOTIFY_ERROR
+            );
         }
     }
 

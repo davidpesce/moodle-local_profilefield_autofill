@@ -73,6 +73,30 @@ The plugin supports flexible pattern matching:
 - **Prefix Wildcard**: `teacher*` - matches usernames starting with "teacher"
 - **Contains**: `*admin*` - matches anything containing "admin"
 
+## Choosing source fields: the trust boundary
+
+Mappings are applied on `user_updated` as well as `user_created`, and that
+includes a user updating their own profile. If a mapping's **source** field is
+one the user can edit themselves — `city`, `department`, or an unlocked custom
+profile field — then that user can set the source to the trigger value and cause
+the plugin to write the mapped **target** value onto their own record.
+
+This is what an auto-fill plugin is for, and it is bounded: a user can only ever
+obtain the exact value an administrator wired to that condition, the plugin only
+ever touches the record of the user in the event, and privileged fields
+(`username`, `email`, roles, capabilities) are not offered as targets. But it
+does mean:
+
+> **Do not drive a security-relevant target from a user-editable source field.**
+
+If a target field is consumed elsewhere for entitlement, access or licensing
+decisions, drive it from a field the user cannot set — one locked in the profile
+field definition, or a standard field maintained by an authoritative sync.
+Otherwise a user can grant themselves whatever that mapping confers.
+
+The same applies in reverse: a mapping whose source is locked and whose target is
+descriptive carries no such risk, which covers most configurations.
+
 ## Technical Details
 
 ### Database Table
@@ -95,7 +119,7 @@ The plugin listens to these Moodle events:
 
 ### Requirements
 
-- Moodle 4.4 or later
+- Moodle 4.5 or later
 - Admin privileges to configure mappings
 
 ## Support
