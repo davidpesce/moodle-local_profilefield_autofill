@@ -225,6 +225,50 @@ final class observer_test extends \advanced_testcase {
     }
 
     /**
+     * A standard target field outside the updatable allow-list is refused.
+     *
+     * The mapping is written straight to the table, bypassing the validation the
+     * form and the CSV importer apply, because the point of the guard is that the
+     * column name reaching set_field() is checked where it is used rather than
+     * only where it was entered.
+     *
+     * @dataProvider rejected_target_provider
+     * @param string $targetfield Field name that must not reach the query
+     */
+    public function test_standard_target_outside_allowlist_is_refused(string $targetfield): void {
+        global $DB;
+
+        $this->add_mapping('profile_field_pfasrc', 'staff', $targetfield, 'x');
+
+        $userid = $this->create_user_with_source('staff');
+
+        // The user record is untouched and, more to the point, no error was raised
+        // by feeding an unexpected identifier into the query.
+        $user = $DB->get_record('user', ['id' => $userid]);
+        $this->assertNotSame('x', $user->username);
+        $this->assertNotSame('x', $user->email);
+    }
+
+    /**
+     * Target fields that must never be used as a column name.
+     *
+     * @return array
+     */
+    public static function rejected_target_provider(): array {
+        return [
+            // Real columns, but not ones a mapping may write to.
+            'username' => ['username'],
+            'email' => ['email'],
+            'id' => ['id'],
+            'password' => ['password'],
+            // Not a column at all.
+            'nonsense' => ['not_a_column'],
+            // Shaped like an injection attempt.
+            'injection' => ["id' = '1"],
+        ];
+    }
+
+    /**
      * Pattern matching, exercised through a real event rather than by reaching
      * into the private matcher.
      *

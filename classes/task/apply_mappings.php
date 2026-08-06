@@ -64,8 +64,13 @@ class apply_mappings extends \core\task\scheduled_task {
             mtrace("Processing mapping: {$mapping->sourcefield} = '{$mapping->sourcevalue}'"
                 . " → {$mapping->targetfield} = '{$mapping->targetvalue}'");
 
-            // Build the query to find matching users.
+            // Build the query to find matching users. Returns null when the source
+            // field is not one this task is willing to put into a query.
             $sql = $this->build_user_query($mapping);
+            if ($sql === null) {
+                mtrace("  Skipping mapping with unexpected source field '{$mapping->sourcefield}'");
+                continue;
+            }
             $params = $this->build_query_params($mapping);
 
             try {
@@ -103,7 +108,7 @@ class apply_mappings extends \core\task\scheduled_task {
      * Build SQL query to find users matching the source condition.
      *
      * @param object $mapping The mapping record
-     * @return string SQL query
+     * @return string|null SQL query, or null if the source field is not usable
      */
     private function build_user_query($mapping) {
         global $DB;
@@ -126,7 +131,14 @@ class apply_mappings extends \core\task\scheduled_task {
                     AND uif.shortname = :fieldshortname
                     AND {$like}";
         } else {
-            // Standard user field.
+            // Standard user field. The name becomes a column identifier, which
+            // cannot be bound as a parameter, so check it against the allow-list
+            // here rather than trusting that whatever wrote the mapping row
+            // validated it.
+            if (!in_array($sourcefield, \local_profilefield_autofill\helper::get_standard_source_columns(), true)) {
+                return null;
+            }
+
             $like = $DB->sql_like($DB->sql_compare_text("u.{$sourcefield}"), ':sourcevalue', false);
 
             $sql = "SELECT DISTINCT u.*, u.{$sourcefield} as source_value
@@ -216,7 +228,13 @@ class apply_mappings extends \core\task\scheduled_task {
                 mtrace("    Updated user {$user->id} ({$user->username}): {$targetfield} = '{$targetvalue}'");
                 return true;
             } else {
-                // Standard user field.
+                // Standard user field. The name becomes a column identifier in the
+                // update, so check it against the allow-list before using it.
+                if (!in_array($targetfield, \local_profilefield_autofill\helper::get_updatable_standard_columns(), true)) {
+                    mtrace("    WARNING: unexpected target field '{$targetfield}' for user {$user->id}");
+                    return false;
+                }
+
                 // Check if user already has this value.
                 if (isset($user->$targetfield) && $user->$targetfield === $targetvalue) {
                     return false;

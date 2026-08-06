@@ -114,6 +114,7 @@ $string['nomappings'] = 'No field mappings have been configured yet.';
 $string['pipe'] = 'Pipe (|)';
 $string['plugindesc'] = 'Automatically fills or updates custom profile fields based on the values of other fields.';
 $string['pluginname'] = 'Profile Field Auto-fill';
+$string['privacy:metadata'] = 'The Profile Field Auto-fill plugin stores mapping rules only. It does not store any personal data about individual users; the profile values it writes are held in core user tables.';
 $string['searchmappings'] = 'Search mappings...';
 $string['semicolon'] = 'Semicolon (;)';
 $string['settingsdesc'] = 'Configure automatic profile field mappings. When a user is created or updated, these rules will automatically populate target fields based on source field values.';

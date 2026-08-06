@@ -61,8 +61,10 @@ $PAGE->add_body_class('local-profilefield-autofill');
 // Add custom CSS for grouped view.
 $PAGE->requires->css('/local/profilefield_autofill/styles.css');
 
-// Ensure Bootstrap JS is loaded for collapse functionality.
-$PAGE->requires->js_call_amd('core/bootstrap', 'init');
+// No Bootstrap module is requested here on purpose. The grouped view's collapse
+// toggles are driven by Bootstrap's data-api, which the theme already loads site
+// wide; there is no core/bootstrap AMD module to require (Bootstrap ships under
+// theme_boost/bootstrap/), so asking for one only raises a RequireJS error.
 
 // Handle actions.
 if ($action === 'delete' && $id > 0) {
@@ -396,12 +398,12 @@ echo html_writer::start_div('mb-3');
 echo html_writer::link(
     $addurl,
     get_string('addmapping', 'local_profilefield_autofill'),
-    ['class' => 'btn btn-primary me-2']
+    ['class' => 'btn btn-primary mr-2']
 );
 echo html_writer::link(
     $importurl,
     get_string('importmappings', 'local_profilefield_autofill'),
-    ['class' => 'btn btn-secondary me-2']
+    ['class' => 'btn btn-secondary mr-2']
 );
 echo html_writer::link(
     $exporturl,

@@ -80,15 +80,40 @@ class helper {
      * @return array Array of updatable standard field options
      */
     private static function get_updatable_standard_fields() {
+        $options = [];
+        foreach (self::get_updatable_standard_columns() as $column) {
+            $options[$column] = get_string('field_' . $column, 'local_profilefield_autofill');
+        }
+
+        return $options;
+    }
+
+    /**
+     * Standard user table columns a mapping is allowed to read from.
+     *
+     * Column names cannot be bound as SQL parameters, so anything that reaches a
+     * query as an identifier has to be checked against this list first. Keeping
+     * the list here means the guard at the point of use and the validation at the
+     * point of entry cannot drift apart.
+     *
+     * @return string[] Column names
+     */
+    public static function get_standard_source_columns() {
         return [
-            'city' => get_string('field_city', 'local_profilefield_autofill'),
-            'country' => get_string('field_country', 'local_profilefield_autofill'),
-            'institution' => get_string('field_institution', 'local_profilefield_autofill'),
-            'department' => get_string('field_department', 'local_profilefield_autofill'),
-            'phone1' => get_string('field_phone1', 'local_profilefield_autofill'),
-            'phone2' => get_string('field_phone2', 'local_profilefield_autofill'),
-            'address' => get_string('field_address', 'local_profilefield_autofill'),
-            'description' => get_string('field_description', 'local_profilefield_autofill'),
+            'username', 'email', 'firstname', 'lastname', 'city', 'country',
+            'institution', 'department', 'phone1', 'phone2', 'address',
+        ];
+    }
+
+    /**
+     * Standard user table columns a mapping is allowed to write to.
+     *
+     * @return string[] Column names
+     */
+    public static function get_updatable_standard_columns() {
+        return [
+            'city', 'country', 'institution', 'department', 'phone1', 'phone2',
+            'address', 'description',
         ];
     }
 
@@ -117,19 +142,12 @@ class helper {
      * @return array Array of standard field options
      */
     private static function get_standard_user_fields() {
-        return [
-            'username' => get_string('field_username', 'local_profilefield_autofill'),
-            'email' => get_string('field_email', 'local_profilefield_autofill'),
-            'firstname' => get_string('field_firstname', 'local_profilefield_autofill'),
-            'lastname' => get_string('field_lastname', 'local_profilefield_autofill'),
-            'city' => get_string('field_city', 'local_profilefield_autofill'),
-            'country' => get_string('field_country', 'local_profilefield_autofill'),
-            'institution' => get_string('field_institution', 'local_profilefield_autofill'),
-            'department' => get_string('field_department', 'local_profilefield_autofill'),
-            'phone1' => get_string('field_phone1', 'local_profilefield_autofill'),
-            'phone2' => get_string('field_phone2', 'local_profilefield_autofill'),
-            'address' => get_string('field_address', 'local_profilefield_autofill'),
-        ];
+        $options = [];
+        foreach (self::get_standard_source_columns() as $column) {
+            $options[$column] = get_string('field_' . $column, 'local_profilefield_autofill');
+        }
+
+        return $options;
     }
 
     /**

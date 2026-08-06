@@ -255,6 +255,57 @@ final class apply_mappings_test extends \advanced_testcase {
     }
 
     /**
+     * A standard source field outside the allow-list never reaches the query.
+     *
+     * The mapping is inserted straight into the table, bypassing the validation
+     * the form and the CSV importer apply, because the guard exists precisely to
+     * hold when a row arrives by some other route. The source field becomes a
+     * column identifier, which cannot be bound as a parameter.
+     *
+     * @dataProvider rejected_source_provider
+     * @param string $sourcefield Field name that must not reach the query
+     */
+    public function test_source_outside_allowlist_is_skipped(string $sourcefield): void {
+        $this->add_mapping($sourcefield, '*', 'profile_field_pfatgt', 'HIT');
+        $userid = $this->create_user_with_source('anything');
+
+        $this->run_task();
+
+        $this->assertNull($this->target_value($userid));
+    }
+
+    /**
+     * Source fields that must never be used as a column name.
+     *
+     * @return array
+     */
+    public static function rejected_source_provider(): array {
+        return [
+            'not a column' => ['not_a_column'],
+            'password' => ['password'],
+            'quote injection' => ["email' OR '1'='1"],
+            'comment injection' => ['email -- '],
+            'stacked statement' => ['id; DROP TABLE mdl_user'],
+        ];
+    }
+
+    /**
+     * A standard target field outside the updatable allow-list is refused, so the
+     * name never becomes a column in the update.
+     */
+    public function test_target_outside_allowlist_is_refused(): void {
+        global $DB;
+
+        $this->add_mapping('profile_field_pfasrc', 'staff', 'username', 'hijacked');
+        $userid = $this->create_user_with_source('staff');
+        $before = $DB->get_field('user', 'username', ['id' => $userid]);
+
+        $this->run_task();
+
+        $this->assertSame($before, $DB->get_field('user', 'username', ['id' => $userid]));
+    }
+
+    /**
      * Suspended and deleted users are outside the task's scope. This is a
      * deliberate difference from the observer, which has no such filter, and is
      * pinned here so the divergence is a decision rather than a surprise.

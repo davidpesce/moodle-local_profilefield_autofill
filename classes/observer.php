@@ -118,7 +118,14 @@ class observer {
                         $changed = true;
                     }
                 } else {
-                    // Handle standard user field.
+                    // Handle standard user field. The field name becomes a column
+                    // identifier, which cannot be bound as a parameter, so check it
+                    // against the allow-list here rather than trusting that whatever
+                    // wrote the mapping row validated it.
+                    if (!in_array($mapping->targetfield, helper::get_updatable_standard_columns(), true)) {
+                        continue;
+                    }
+
                     $currentvalue = isset($user->{$mapping->targetfield}) ? $user->{$mapping->targetfield} : '';
                     if ($currentvalue != $mapping->targetvalue) {
                         // Update the standard user field.
@@ -151,7 +158,14 @@ class observer {
                 return $user->profile[$shortname];
             }
         } else {
-            // It's a standard user field.
+            // It's a standard user field. Restrict to the fields a mapping may
+            // read: property_exists() alone would happily hand back any column on
+            // the user record, including the password hash, and let a mapping
+            // pattern be matched against it.
+            if (!in_array($fieldname, helper::get_standard_source_columns(), true)) {
+                return null;
+            }
+
             if (property_exists($user, $fieldname)) {
                 return $user->{$fieldname};
             }
