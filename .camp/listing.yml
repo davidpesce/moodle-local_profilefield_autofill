@@ -1,0 +1,22 @@
+name: Profile Field Auto-fill
+summary: Fill user profile fields automatically from the value of another field.
+description: |
+  Profile Field Auto-fill lets an administrator define mapping rules that set a
+  user profile field from the value of another one. A rule matches a source
+  field against a value or a wildcard pattern and writes a fixed value to a
+  target field.
+
+  Both standard user fields (city, country, institution, department, phone,
+  address, description) and custom profile fields can be used as the source or
+  the target.
+
+  Rules are applied in real time when a user is created or updated — including
+  users created over web services by an external importer — and a nightly
+  scheduled task applies them in bulk to existing users. Mappings can be managed
+  individually, edited in bulk by target value, and imported or exported as CSV.
+labels:
+  - fully-free
+links:
+  docs: https://github.com/davidpesce/moodle-local_profilefield_autofill#readme
+  issues: https://github.com/davidpesce/moodle-local_profilefield_autofill/issues
+  changelog: https://github.com/davidpesce/moodle-local_profilefield_autofill/releases

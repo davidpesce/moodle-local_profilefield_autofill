@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->version   = 2026080601;        // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2024100700;        // Requires Moodle 4.5 or later.
+$plugin->supported = [405, 502];        // Tested against Moodle 4.5 to 5.2 (see the CI matrix).
 $plugin->component = 'local_profilefield_autofill'; // Full name of the plugin (used for diagnostics).
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->release   = '1.2.3';
